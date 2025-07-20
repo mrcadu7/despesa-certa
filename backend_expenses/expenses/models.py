@@ -12,3 +12,8 @@ class Expense(models.Model):
 
     def __str__(self):
         return f"{self.category} - ${self.value} on {self.date}"
+
+    class Meta:
+        ordering = ['-date']
+        verbose_name = 'Expense'
+        verbose_name_plural = 'Expenses'
