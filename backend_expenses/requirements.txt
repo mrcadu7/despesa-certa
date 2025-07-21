@@ -1,3 +1,5 @@
+# Schemas e validação moderna
+pydantic>=2.0,<3.0
 # Filtros DRF
 django-filter>=23.0,<24.0
 # IPython para shell_plus interativo
