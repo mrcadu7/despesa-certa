@@ -1,10 +1,8 @@
-# Schemas e validação moderna
+
+pytest-xdist>=3.6,<4.0
 pydantic>=2.0,<3.0
-# Filtros DRF
 django-filter>=23.0,<24.0
-# IPython para shell_plus interativo
 ipython>=8.0,<9.0
-# Django Extensions para shell_plus
 django-extensions
 DJango>=4.2,<5.0
 djangorestframework>=3.15,<4.0

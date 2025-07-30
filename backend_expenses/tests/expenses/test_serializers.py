@@ -1,6 +1,4 @@
-from django.test import TestCase
 import pytest
-from expenses.models import Expense
 from django.contrib.auth import get_user_model
 from expenses.serializers import ExpenseSerializer
 from datetime import date, timedelta
@@ -45,3 +43,46 @@ def test_expense_serializer_invalid_date():
     serializer = ExpenseSerializer(data=data)
     assert not serializer.is_valid()
     assert 'pydantic' in serializer.errors
+
+
+@pytest.mark.django_db
+def test_expense_serializer_negative_value():
+    user = get_user_model().objects.create_user(username='test4', password='123')
+    data = {
+        'user': user.id,
+        'value': -50.0,
+        'category': 'Alimentação',
+        'date': date.today(),
+        'description': 'Valor negativo',
+    }
+    serializer = ExpenseSerializer(data=data)
+    assert not serializer.is_valid()
+    assert 'value' in serializer.errors or 'pydantic' in serializer.errors
+
+
+@pytest.mark.django_db
+def test_expense_serializer_missing_description():
+    user = get_user_model().objects.create_user(username='test5', password='123')
+    data = {
+        'user': user.id,
+        'value': 10.0,
+        'category': 'Alimentação',
+        'date': date.today(),
+        # 'description' ausente
+    }
+    serializer = ExpenseSerializer(data=data)
+    assert serializer.is_valid(), serializer.errors
+
+
+@pytest.mark.django_db
+def test_expense_serializer_empty_description():
+    user = get_user_model().objects.create_user(username='test6', password='123')
+    data = {
+        'user': user.id,
+        'value': 10.0,
+        'category': 'Alimentação',
+        'date': date.today(),
+        'description': '',
+    }
+    serializer = ExpenseSerializer(data=data)
+    assert serializer.is_valid(), serializer.errors
