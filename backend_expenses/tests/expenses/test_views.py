@@ -77,7 +77,8 @@ def test_list_expenses_only_own():
     client.force_authenticate(user=user1)
     response = client.get('/api/expenses/')
     assert response.status_code == 200
-    assert all(exp['user'] == user1.id for exp in response.data)
+    results = response.data['results'] if 'results' in response.data else response.data
+    assert all(exp['user'] == user1.id for exp in results)
 
 @pytest.mark.django_db
 def test_create_expense_unauthenticated():

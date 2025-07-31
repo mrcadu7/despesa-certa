@@ -22,7 +22,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
     filterset_class = ExpenseFilter
     search_fields = ['description', 'category']
     ordering_fields = ['date', 'value', 'category']
-    ordering = ['-date']
+    ordering = ['-id']
     
     def get_object(self):
         obj = Expense.objects.get(pk=self.kwargs["pk"])

@@ -18,7 +18,8 @@ def test_filter_expense_by_created():
     created_str = new_created.date().isoformat()
     response = client.get(f'/api/expenses/?created_date={created_str}')
     assert response.status_code == 200
-    ids = [exp['id'] for exp in response.data]
+    results = response.data['results'] if 'results' in response.data else response.data
+    ids = [exp['id'] for exp in results]
     assert expense1.id in ids
     assert expense2.id not in ids
 
