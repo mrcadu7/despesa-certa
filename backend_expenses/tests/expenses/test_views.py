@@ -1,5 +1,3 @@
-
-
 import pytest
 from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
@@ -7,6 +5,36 @@ from expenses.models import Expense
 from datetime import date
 from decimal import Decimal
 
+@pytest.mark.django_db
+def test_create_expense_authenticated_jwt():
+    user = get_user_model().objects.create_user(username='jwtuser', password='123')
+    client = APIClient()
+    response = client.post('/api/token/', {'username': 'jwtuser', 'password': '123'}, format='json')
+    assert response.status_code == 200
+    access = response.data['access']
+    client.credentials(HTTP_AUTHORIZATION=f'Bearer {access}')
+    data = {
+        'value': 77.77,
+        'category': 'Transporte',
+        'date': date.today(),
+        'description': 'Uber',
+    }
+    response = client.post('/api/expenses/', data, format='json')
+    assert response.status_code == 201
+    assert Expense.objects.filter(user=user, value=77.77).exists()
+    
+@pytest.mark.django_db
+def test_create_expense_jwt_invalid_token():
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION='Bearer invalidtoken')
+    data = {
+        'value': 99.99,
+        'category': 'Teste',
+        'date': date.today(),
+        'description': 'Falha JWT',
+    }
+    response = client.post('/api/expenses/', data, format='json')
+    assert response.status_code == 401
 
 @pytest.mark.django_db
 def test_update_expense_owner():
