@@ -8,8 +8,8 @@ class ExpenseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Expense
-        fields = ['id', 'user', 'value', 'category', 'date', 'description']
-        read_only_fields = ['id', 'user']
+        fields = ['id', 'user', 'value', 'category', 'date', 'description', 'created', 'modified']
+        read_only_fields = ['id', 'user', 'created', 'modified']
 
     def validate(self, data):
         if data.get('category', '').lower() == 'proibida':

@@ -3,17 +3,15 @@ from rest_framework import viewsets, permissions, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Expense
 from .serializers import ExpenseSerializer
+from .filters import ExpenseFilter
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
     """Permite que apenas o dono edite/deletar, staff pode tudo."""
     def has_object_permission(self, request, view, obj):
-        # Staff pode tudo
         if request.user and request.user.is_staff:
             return True
-        # Métodos de leitura são permitidos para o dono
         if request.method in permissions.SAFE_METHODS:
             return obj.user == request.user
-        # Métodos de escrita só para o dono
         return obj.user == request.user
 
 class ExpenseViewSet(viewsets.ModelViewSet):
@@ -21,7 +19,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
     serializer_class = ExpenseSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['date', 'category', 'value']
+    filterset_class = ExpenseFilter
     search_fields = ['description', 'category']
     ordering_fields = ['date', 'value', 'category']
     ordering = ['-date']
@@ -37,4 +35,3 @@ class ExpenseViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-# Create your views here.
