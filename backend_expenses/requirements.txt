@@ -1,3 +1,4 @@
+drf-yasg>=1.21.7
 
 pytest-xdist>=3.6,<4.0
 pydantic>=2.0,<3.0

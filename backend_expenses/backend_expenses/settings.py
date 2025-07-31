@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'expenses',
     'rest_framework',
     'django_extensions',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
