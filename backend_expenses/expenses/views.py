@@ -17,6 +17,7 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
         return obj.user == request.user
 
 class ExpenseViewSet(viewsets.ModelViewSet):
+    """ViewSet para gerenciar despesas."""
     serializer_class = ExpenseSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -24,6 +25,11 @@ class ExpenseViewSet(viewsets.ModelViewSet):
     search_fields = ['description', 'category']
     ordering_fields = ['date', 'value', 'category']
     ordering = ['-date']
+    
+    def get_object(self):
+        obj = Expense.objects.get(pk=self.kwargs["pk"])
+        self.check_object_permissions(self.request, obj)
+        return obj
 
     def get_queryset(self):
         return Expense.objects.for_user(self.request.user)
