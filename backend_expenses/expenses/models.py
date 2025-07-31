@@ -1,9 +1,7 @@
-
+from django.contrib.auth import get_user_model
 from django.db import models
 from django_extensions.db.models import TimeStampedModel
 
-
-from django.contrib.auth import get_user_model
 
 class ExpenseQuerySet(models.QuerySet):
     def for_user(self, user):
@@ -26,8 +24,11 @@ class ExpenseQuerySet(models.QuerySet):
     def search_description(self, text):
         return self.filter(description__icontains=text)
 
+
 class Expense(TimeStampedModel, models.Model):
-    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='expenses')
+    user = models.ForeignKey(
+        get_user_model(), on_delete=models.CASCADE, related_name="expenses"
+    )
     value = models.DecimalField(max_digits=10, decimal_places=2)
     category = models.CharField(max_length=50)
     date = models.DateField()
@@ -39,6 +40,6 @@ class Expense(TimeStampedModel, models.Model):
         return f"{self.category} - ${self.value} on {self.date}"
 
     class Meta:
-        ordering = ['-date']
-        verbose_name = 'Expense'
-        verbose_name_plural = 'Expenses'
+        ordering = ["-date"]
+        verbose_name = "Expense"
+        verbose_name_plural = "Expenses"

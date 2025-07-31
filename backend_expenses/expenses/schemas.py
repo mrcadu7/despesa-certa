@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field, field_validator
 from datetime import date
 from typing import Optional
+
+from pydantic import BaseModel, Field, field_validator
+
 
 class ExpenseSchema(BaseModel):
     value: float = Field(..., gt=0, description="Valor da despesa (maior que zero)")
@@ -8,20 +10,20 @@ class ExpenseSchema(BaseModel):
     date: date
     description: Optional[str] = None
 
-    @field_validator('date')
+    @field_validator("date")
     def date_not_in_future(cls, v):
         if v > date.today():
-            raise ValueError('A data não pode ser futura')
+            raise ValueError("A data não pode ser futura")
         return v
 
-    @field_validator('category')
+    @field_validator("category")
     def category_not_empty(cls, v):
         if not v or not v.strip():
-            raise ValueError('Categoria não pode ser vazia')
+            raise ValueError("Categoria não pode ser vazia")
         return v
 
-    @field_validator('description')
+    @field_validator("description")
     def description_length(cls, v):
         if v and len(v) > 500:
-            raise ValueError('Descrição não pode ter mais que 500 caracteres')
+            raise ValueError("Descrição não pode ter mais que 500 caracteres")
         return v
