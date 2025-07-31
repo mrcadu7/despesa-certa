@@ -1,6 +1,7 @@
 from django.contrib import admin
 
 from .models import Expense
+from .models_history import ExpenseHistory
 
 
 @admin.register(Expense)
@@ -12,4 +13,9 @@ class ExpenseAdmin(admin.ModelAdmin):
     ordering = ("-date",)
 
 
-# Register your models here.
+@admin.register(ExpenseHistory)
+class ExpenseHistoryAdmin(admin.ModelAdmin):
+    list_display = ("expense", "user", "action", "date")
+    list_filter = ("action", "date", "user")
+    search_fields = ("expense__description", "user__username", "action")
+    readonly_fields = ("expense", "user", "action", "date", "data")

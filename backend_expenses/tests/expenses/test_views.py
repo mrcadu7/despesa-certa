@@ -39,7 +39,7 @@ def test_create_expense_jwt_invalid_token():
         "description": "Falha JWT",
     }
     response = client.post("/api/expenses/", data, format="json")
-    assert response.status_code == 401
+    assert response.status_code in (401, 403)
 
 
 @pytest.mark.django_db

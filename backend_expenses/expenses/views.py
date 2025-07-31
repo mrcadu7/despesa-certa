@@ -1,5 +1,9 @@
+from django.db.models import Sum
+from django.db.models.functions import TruncMonth
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from .filters import ExpenseFilter
 from .models import Expense
@@ -42,3 +46,16 @@ class ExpenseViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    @action(detail=False, methods=["get"], url_path="report/monthly")
+    def report_monthly(self, request):
+        qs = self.get_queryset()
+        total_geral = qs.aggregate(total=Sum("value"))["total"] or 0
+        data = (
+            qs.annotate(month=TruncMonth("date"))
+            .values("month", "category")
+            .annotate(total=Sum("value"))
+            .order_by("-month", "category")
+        )
+        response = [{"total_geral": float(total_geral)}] + list(data)
+        return Response(response)
