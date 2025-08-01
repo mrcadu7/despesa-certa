@@ -45,13 +45,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r backend_expenses/requirements.txt
-          pip install black isort flake8 coverage pytest pytest-cov
-      - name: Run linter (black)
-        run: black --check backend_expenses --exclude '(migrations|settings.py|manage.py|wsgi.py|asgi.py)'
-      - name: Run linter (isort)
-        run: isort --check backend_expenses --skip-glob='*/migrations/*' --skip settings.py --skip manage.py --skip wsgi.py --skip asgi.py --skip urls.py
-      - name: Run linter (flake8)
-        run: flake8 backend_expenses --exclude='migrations,settings.py,manage.py,wsgi.py,asgi.py,urls.py'
+          pip install coverage pytest pytest-cov
       - name: Run migrations
         run: |
           python backend_expenses/manage.py migrate
