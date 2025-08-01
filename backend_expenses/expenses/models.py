@@ -9,8 +9,6 @@ from django.forms.models import model_to_dict
 from django.utils import timezone
 from django_extensions.db.models import TimeStampedModel
 
-from .models_history import ExpenseHistory
-
 
 class ExpenseQuerySet(models.QuerySet):
     def for_user(self, user):
@@ -52,6 +50,26 @@ class Expense(TimeStampedModel, models.Model):
         ordering = ["-date"]
         verbose_name = "Expense"
         verbose_name_plural = "Expenses"
+
+
+class ExpenseHistory(models.Model):
+    ACTION_CHOICES = [
+        ("created", "Created"),
+        ("updated", "Updated"),
+        ("deleted", "Deleted"),
+    ]
+    expense = models.ForeignKey(
+        "expenses.Expense", on_delete=models.CASCADE, related_name="history"
+    )
+    user = models.ForeignKey(
+        get_user_model(), on_delete=models.SET_NULL, null=True, blank=True
+    )
+    action = models.CharField(max_length=10, choices=ACTION_CHOICES)
+    date = models.DateTimeField(auto_now_add=True)
+    data = models.JSONField()
+
+    def __str__(self):
+        return f"{self.expense} - {self.action} em {self.date:%Y-%m-%d %H:%M}"
 
 
 # Signals para histórico de alterações

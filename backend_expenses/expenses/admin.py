@@ -1,7 +1,6 @@
 from django.contrib import admin
 
-from .models import Expense
-from .models_history import ExpenseHistory
+from .models import Expense, ExpenseHistory
 
 
 @admin.register(Expense)
