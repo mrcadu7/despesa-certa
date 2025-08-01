@@ -85,10 +85,9 @@ WSGI_APPLICATION = 'backend_expenses.wsgi.application'
 import os
 if os.environ.get('RUNNING_IN_DOCKER', False):
     DB_HOST = 'db'
-    DB_PORT = 5432
 else:
     DB_HOST = 'localhost'
-    DB_PORT = 55432
+DB_PORT = config('DB_PORT', default=5432, cast=int)
 
 DATABASES = {
     'default': {
