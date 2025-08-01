@@ -1,13 +1,20 @@
-from django.db.models import Sum
-from django.db.models.functions import TruncMonth
+import os
+import time
+
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, permissions, viewsets
+from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from django.db.models import Sum
+from django.db.models.functions import TruncMonth
+from django.http import FileResponse, Http404
 
 from .filters import ExpenseFilter
 from .models import Expense
 from .serializers import ExpenseSerializer
+from .tasks import export_expenses_csv
 
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
@@ -57,5 +64,42 @@ class ExpenseViewSet(viewsets.ModelViewSet):
             .annotate(total=Sum("value"))
             .order_by("-month", "category")
         )
-        response = [{"total_geral": float(total_geral)}] + list(data)
-        return Response(response)
+        return Response({"total_geral": total_geral, "detalhes": data})
+
+
+class ExportExpensesCSVView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        """GET method for easier testing - same as POST"""
+        return self.export_csv(request)
+
+    def post(self, request):
+        """POST method for CSV export"""
+        return self.export_csv(request)
+
+    def export_csv(self, request):
+        """Export expenses to CSV."""
+        result = export_expenses_csv.delay(request.user.id)
+        for _ in range(30):
+            if result.ready():
+                break
+            time.sleep(0.5)
+        if not result.successful():
+            return Response(
+                {"error": "Falha na exportação"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        export_path = result.get()
+        if not os.path.exists(export_path):
+            raise Http404("Arquivo não encontrado")
+
+        with open(export_path, "rb") as file:
+            response = FileResponse(file, as_attachment=True, filename="expenses_export.csv")
+            response["Content-Length"] = os.path.getsize(export_path)
+
+        try:
+            os.remove(export_path)
+        except Exception:
+            pass
+        return response
