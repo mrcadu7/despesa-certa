@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import pre_delete, post_save
 from django.dispatch import receiver
 from django.forms.models import model_to_dict
 from django.utils import timezone
@@ -96,8 +96,8 @@ def expense_post_save(sender, instance, created, **kwargs):
     qs.exclude(id__in=ids_to_keep).delete()
 
 
-@receiver(post_delete, sender=Expense)
-def expense_post_delete(sender, instance, **kwargs):
+@receiver(pre_delete, sender=Expense)
+def expense_pre_delete(sender, instance, **kwargs):
     user = getattr(instance, "user", None)
     data = model_to_dict(instance)
     for k, v in data.items():

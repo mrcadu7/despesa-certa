@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: expenses
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DJANGO_SETTINGS_MODULE: backend_expenses.settings
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: expenses
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: expenses
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      PYTHONPATH: backend_expenses
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend_expenses/requirements.txt
+          pip install black isort flake8 coverage pytest pytest-cov
+      - name: Run linter (black)
+        run: black --check backend_expenses --exclude '(migrations|settings.py|manage.py|wsgi.py|asgi.py)'
+      - name: Run linter (isort)
+        run: isort --check backend_expenses --skip-glob='*/migrations/*' --skip settings.py --skip manage.py --skip wsgi.py --skip asgi.py --skip urls.py
+      - name: Run linter (flake8)
+        run: flake8 backend_expenses --exclude='migrations,settings.py,manage.py,wsgi.py,asgi.py,urls.py'
+      - name: Run migrations
+        run: |
+          python backend_expenses/manage.py migrate
+      - name: Run tests with coverage
+        run: |
+          coverage run -m pytest
+          coverage report
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: backend_expenses/htmlcov/
