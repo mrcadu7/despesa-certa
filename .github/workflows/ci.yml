@@ -25,14 +25,15 @@ jobs:
           --health-retries 5
     env:
       DJANGO_SETTINGS_MODULE: backend_expenses.settings
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: expenses
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
       DB_HOST: localhost
       DB_PORT: 5432
-      DB_NAME: expenses
-      DB_USER: postgres
-      DB_PASSWORD: postgres
+      DB_NAME: ${{ secrets.POSTGRES_DB }}
+      DB_USER: ${{ secrets.POSTGRES_USER }}
+      DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
       PYTHONPATH: backend_expenses
     steps:
       - uses: actions/checkout@v4
