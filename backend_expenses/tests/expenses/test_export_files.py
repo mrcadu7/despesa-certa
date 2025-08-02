@@ -104,10 +104,8 @@ class ExportFilesTestCase(TestCase):
             mock_localtime.return_value = mock_now
             result = export_expenses_csv(self.user.id)
             filename = result["filename"]
-            expected_parts = [f"despesas_{self.user.id}", "08_2025", "20250801_153045"]
-            for part in expected_parts:
-                self.assertIn(part, filename)
-            self.assertTrue(filename.endswith(".xlsx"))
+            expected = f"despesas-{self.user.id}-08_2025-153045.xlsx"
+            self.assertEqual(filename, expected)
 
     def test_export_expenses_category_totals(self):
         """Testa se os totais por categoria são calculados corretamente."""
@@ -152,8 +150,8 @@ class ExportFilesTestCase(TestCase):
             result = export_expenses_csv(self.user.id)
             mock_localtime.assert_called()
             filename = result["filename"]
-            self.assertIn("08_2025", filename)
-            self.assertIn("20250815", filename)
+            expected = f"despesas-{self.user.id}-08_2025-103000.xlsx"
+            self.assertEqual(filename, expected)
 
     def test_export_expenses_error_handling(self):
         """Testa tratamento de erros durante a exportação."""
