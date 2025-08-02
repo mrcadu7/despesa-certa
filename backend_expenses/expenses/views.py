@@ -1,4 +1,3 @@
-import os
 import time
 
 from django_filters.rest_framework import DjangoFilterBackend
@@ -9,7 +8,7 @@ from rest_framework.views import APIView
 
 from django.db.models import Sum
 from django.db.models.functions import TruncMonth
-from django.http import FileResponse, Http404
+from django.http import HttpResponse
 
 from .filters import ExpenseFilter
 from .models import Expense
@@ -71,35 +70,53 @@ class ExportExpensesCSVView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        """GET method for easier testing - same as POST"""
-        return self.export_csv(request)
-
-    def post(self, request):
-        """POST method for CSV export"""
-        return self.export_csv(request)
-
-    def export_csv(self, request):
-        """Export expenses to CSV."""
-        result = export_expenses_csv.delay(request.user.id)
-        for _ in range(30):
-            if result.ready():
-                break
-            time.sleep(0.5)
-        if not result.successful():
-            return Response(
-                {"error": "Falha na exportação"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-        export_path = result.get()
-        if not os.path.exists(export_path):
-            raise Http404("Arquivo não encontrado")
-
-        with open(export_path, "rb") as file:
-            response = FileResponse(file, as_attachment=True, filename="expenses_export.csv")
-            response["Content-Length"] = os.path.getsize(export_path)
+        """Export expenses to Excel using Celery."""
+        import base64
 
         try:
-            os.remove(export_path)
-        except Exception:
-            pass
-        return response
+            result = export_expenses_csv.delay(request.user.id)
+
+            for _ in range(30):
+                if result.ready():
+                    break
+                time.sleep(0.5)
+
+            if not result.ready():
+                return Response(
+                    {"error": "Timeout na exportação - tente novamente"},
+                    status=status.HTTP_408_REQUEST_TIMEOUT,
+                )
+
+            if not result.successful():
+                error_msg = (
+                    str(result.result) if result.result else "Falha desconhecida na exportação"
+                )
+                return Response(
+                    {"error": f"Falha na exportação: {error_msg}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            task_result = result.get()
+
+            if not task_result or not isinstance(task_result, dict):
+                return Response(
+                    {"error": "Resultado inválido da task de exportação"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            file_content = base64.b64decode(task_result["content"])
+            filename = task_result["filename"]
+
+            response = HttpResponse(
+                file_content,
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+            return response
+
+        except Exception as e:
+            return Response(
+                {"error": f"Erro interno: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
