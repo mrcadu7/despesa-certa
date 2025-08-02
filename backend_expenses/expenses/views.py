@@ -7,6 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from django.contrib.auth.models import User
 from django.db.models import Sum
 from django.db.models.functions import TruncMonth
 from django.http import HttpResponse
@@ -79,6 +80,36 @@ class ExpenseViewSet(viewsets.ModelViewSet):
             .order_by("-month", "category")
         )
         return Response({"total_geral": total_geral, "detalhes": data})
+
+    @action(detail=False, methods=["get"])
+    def export(self, request):
+        """
+        Exporta as despesas do usuário para CSV
+        """
+        import csv
+
+        from django.http import HttpResponse
+
+        queryset = self.get_queryset()
+
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="despesas.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(["Descrição", "Valor", "Categoria", "Data", "Criado em"])
+
+        for expense in queryset:
+            writer.writerow(
+                [
+                    expense.description,
+                    expense.value,
+                    expense.category,
+                    expense.date.strftime("%d/%m/%Y"),
+                    expense.created.strftime("%d/%m/%Y %H:%M"),
+                ]
+            )
+
+        return response
 
 
 class ExportExpensesCSVView(APIView):
@@ -160,6 +191,54 @@ class MonthlyIncomeViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save(user=self.request.user)
+
+    @action(detail=False, methods=["get"])
+    def export(self, request):
+        """
+        Exporta as rendas do usuário para CSV
+        """
+        import csv
+
+        from django.http import HttpResponse
+
+        queryset = self.get_queryset()
+
+        # Aplicar filtros se fornecidos
+        search = request.query_params.get("search", None)
+        if search:
+            queryset = queryset.filter(description__icontains=search)
+
+        income_type = request.query_params.get("income_type", None)
+        if income_type:
+            queryset = queryset.filter(income_type=income_type)
+
+        date_start = request.query_params.get("date_start", None)
+        if date_start:
+            queryset = queryset.filter(date__gte=date_start)
+
+        date_end = request.query_params.get("date_end", None)
+        if date_end:
+            queryset = queryset.filter(date__lte=date_end)
+
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="rendas.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(["Descrição", "Valor", "Tipo", "Data", "Recorrente", "Criado em"])
+
+        for income in queryset:
+            writer.writerow(
+                [
+                    income.description,
+                    income.value,
+                    income.get_income_type_display(),
+                    income.date.strftime("%d/%m/%Y"),
+                    "Sim" if income.is_recurring else "Não",
+                    income.created.strftime("%d/%m/%Y %H:%M"),
+                ]
+            )
+
+        return response
 
 
 class FinancialAlertViewSet(viewsets.ReadOnlyModelViewSet):
@@ -259,4 +338,36 @@ class GenerateFinancialAlertsView(APIView):
                 "message": f'{len(alerts)} alertas gerados para {target_month.strftime("%m/%Y")}',
                 "alerts": alerts,
             }
+        )
+
+
+class RegisterView(APIView):
+    """
+    View para registro de novos usuários.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        username = request.data.get("username")
+        password = request.data.get("password")
+        email = request.data.get("email", "")
+
+        if not username or not password:
+            return Response(
+                {"error": "Username e password são obrigatórios"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if User.objects.filter(username=username).exists():
+            return Response({"error": "Username já existe"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.create_user(username=username, password=password, email=email)
+
+        return Response(
+            {
+                "message": "Usuário criado com sucesso",
+                "user": {"id": user.id, "username": user.username, "email": user.email},
+            },
+            status=status.HTTP_201_CREATED,
         )
