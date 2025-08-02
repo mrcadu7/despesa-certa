@@ -27,7 +27,7 @@ class ExportFilesTestCase(TestCase):
         self.expense1 = Expense.objects.create(
             user=self.user,
             value=Decimal("100.50"),
-            category="Alimentação",
+            category="alimentacao",
             description="Supermercado",
             date=self.now.date(),
         )
@@ -35,7 +35,7 @@ class ExportFilesTestCase(TestCase):
         self.expense2 = Expense.objects.create(
             user=self.user,
             value=Decimal("250.00"),
-            category="Transporte",
+            category="transporte",
             description="Combustível",
             date=self.now.date(),
         )
@@ -43,7 +43,7 @@ class ExportFilesTestCase(TestCase):
         self.expense3 = Expense.objects.create(
             user=self.user,
             value=Decimal("75.25"),
-            category="Alimentação",
+            category="alimentacao",
             description="Restaurante",
             date=self.now.date(),
         )
@@ -52,7 +52,7 @@ class ExportFilesTestCase(TestCase):
         self.expense_previous = Expense.objects.create(
             user=self.user,
             value=Decimal("50.00"),
-            category="Outros",
+            category="outros",
             description="Despesa mês anterior",
             date=previous_month.date(),
         )
@@ -60,23 +60,25 @@ class ExportFilesTestCase(TestCase):
     def test_export_expenses_csv_success(self):
         """Testa se a exportação de despesas funciona corretamente."""
         result = export_expenses_csv(self.user.id)
-        self.assertIn("content", result)
-        self.assertIn("filename", result)
+
+        assert "content" in result
+        assert "filename" in result
+
         content = result["content"]
-        self.assertIsInstance(content, str)
-        try:
-            decoded_content = base64.b64decode(content)
-            self.assertIsInstance(decoded_content, bytes)
-        except Exception as e:
-            self.fail(f"Falha ao decodificar base64: {e}")
+        assert isinstance(content, str)
+        decoded_content = base64.b64decode(content)
+        assert isinstance(decoded_content, bytes)
+
         filename = result["filename"]
-        self.assertTrue(filename.endswith(".xlsx"))
-        self.assertIn(str(self.user.id), filename)
-        self.assertIn(self.now.strftime("%m_%Y"), filename)
+        assert filename.endswith(".xlsx")
+        assert str(self.user.id) in filename
+        assert self.now.strftime("%m_%Y") in filename
 
     def test_export_expenses_csv_user_not_found(self):
         """Testa comportamento quando usuário não existe."""
-        with self.assertRaises(User.DoesNotExist):
+        import pytest
+
+        with pytest.raises(User.DoesNotExist):
             export_expenses_csv(999)
 
     def test_export_expenses_csv_no_expenses(self):
@@ -85,9 +87,10 @@ class ExportFilesTestCase(TestCase):
             username="noexpenses", email="noexpenses@example.com", password="testpass123"
         )
         result = export_expenses_csv(user_no_expenses.id)
-        self.assertIn("content", result)
-        self.assertIn("filename", result)
-        self.assertTrue(result["filename"].endswith(".xlsx"))
+
+        assert "content" in result
+        assert "filename" in result
+        assert result["filename"].endswith(".xlsx")
 
     def test_export_expenses_filters_current_month_only(self):
         """Testa se apenas despesas do mês atual são exportadas."""
@@ -95,7 +98,7 @@ class ExportFilesTestCase(TestCase):
             mock_now = timezone.make_aware(datetime.datetime(2025, 8, 1, 12, 0, 0))
             mock_localtime.return_value = mock_now
             result = export_expenses_csv(self.user.id)
-            self.assertIn("content", result)
+            assert "content" in result
 
     def test_export_expenses_filename_format(self):
         """Testa se o nome do arquivo segue o formato esperado."""
@@ -103,17 +106,18 @@ class ExportFilesTestCase(TestCase):
             mock_now = timezone.make_aware(datetime.datetime(2025, 8, 1, 15, 30, 45))
             mock_localtime.return_value = mock_now
             result = export_expenses_csv(self.user.id)
+
             filename = result["filename"]
             expected = f"despesas-{self.user.id}-08_2025-153045.xlsx"
-            self.assertEqual(filename, expected)
+            assert filename == expected
 
     def test_export_expenses_category_totals(self):
         """Testa se os totais por categoria são calculados corretamente."""
         with self.assertLogs("expenses.tasks", level="INFO") as log:
             export_expenses_csv(self.user.id)
             log_message = log.output[0]
-            self.assertIn("concluída para usuário", log_message)
-            self.assertIn(self.user.username, log_message)
+            assert "concluída para usuário" in log_message
+            assert self.user.username in log_message
 
     @patch("expenses.tasks.Workbook")
     def test_export_expenses_workbook_configuration(self, mock_workbook_class):
@@ -123,22 +127,25 @@ class ExportFilesTestCase(TestCase):
         mock_workbook.add_worksheet.return_value = mock_worksheet
         mock_workbook.add_format.return_value = Mock()
         mock_workbook_class.return_value = mock_workbook
+
         export_expenses_csv(self.user.id)
+
         mock_workbook_class.assert_called_once()
         call_args = mock_workbook_class.call_args
-        self.assertIsNotNone(call_args)
+        assert call_args is not None
+
         args, _ = call_args
         if len(args) > 1:
             config = args[1]
-            self.assertIsInstance(config, dict)
-            self.assertIn("in_memory", config)
-            self.assertTrue(config["in_memory"])
-            self.assertIn("default_date_format", config)
-            self.assertEqual(config["default_date_format"], "dd/mm/yyyy")
-            self.assertIn("remove_timezone", config)
-            self.assertTrue(config["remove_timezone"])
+            assert isinstance(config, dict)
+            assert "in_memory" in config
+            assert config["in_memory"] is True
+            assert "default_date_format" in config
+            assert config["default_date_format"] == "dd/mm/yyyy"
+            assert "remove_timezone" in config
+            assert config["remove_timezone"] is True
         else:
-            self.assertGreater(len(args), 0)
+            assert len(args) > 0
 
     def test_export_expenses_timezone_handling(self):
         """Testa se o timezone é tratado corretamente."""
@@ -148,15 +155,18 @@ class ExportFilesTestCase(TestCase):
             )
             mock_localtime.return_value = mock_now
             result = export_expenses_csv(self.user.id)
+
             mock_localtime.assert_called()
             filename = result["filename"]
             expected = f"despesas-{self.user.id}-08_2025-103000.xlsx"
-            self.assertEqual(filename, expected)
+            assert filename == expected
 
     def test_export_expenses_error_handling(self):
         """Testa tratamento de erros durante a exportação."""
+        import pytest
+
         with patch("expenses.tasks.Workbook") as mock_workbook:
             mock_workbook.side_effect = Exception("Erro simulado")
-            with self.assertRaises(Exception) as context:
+            with pytest.raises(Exception) as exc_info:
                 export_expenses_csv(self.user.id)
-            self.assertEqual(str(context.exception), "Erro simulado")
+            assert str(exc_info.value) == "Erro simulado"

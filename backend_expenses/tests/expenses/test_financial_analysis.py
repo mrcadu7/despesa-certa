@@ -1,6 +1,8 @@
 import datetime
 from decimal import Decimal
 
+import pytest
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
@@ -53,7 +55,7 @@ class FinancialAnalysisServiceTestCase(TestCase):
         """Testa se a renda mensal é obtida corretamente."""
         service = FinancialAnalysisService(self.user, self.month)
         income = service.get_monthly_income()
-        self.assertEqual(income, Decimal("5000.00"))
+        assert income == Decimal("5000.00")
 
     def test_get_monthly_income_not_found(self):
         """Testa comportamento quando não há renda cadastrada."""
@@ -63,7 +65,7 @@ class FinancialAnalysisServiceTestCase(TestCase):
 
         service = FinancialAnalysisService(user_without_income, self.month)
         income = service.get_monthly_income()
-        self.assertEqual(income, Decimal("0.00"))
+        assert income == Decimal("0.00")
 
     def test_get_expenses_by_category(self):
         """Testa se as despesas por categoria são calculadas corretamente."""
@@ -76,26 +78,26 @@ class FinancialAnalysisServiceTestCase(TestCase):
             "transporte": Decimal("400.00"),
         }
 
-        self.assertEqual(expenses_by_category, expected)
+        assert expenses_by_category == expected
 
     def test_get_total_expenses(self):
         """Testa se o total de despesas é calculado corretamente."""
         service = FinancialAnalysisService(self.user, self.month)
         total = service.get_total_expenses()
-        self.assertEqual(total, Decimal("3000.00"))
+        assert total == Decimal("3000.00")
 
     def test_calculate_balance(self):
         """Testa se o saldo é calculado corretamente."""
         service = FinancialAnalysisService(self.user, self.month)
         balance = service.calculate_balance()
-        self.assertEqual(balance, Decimal("2000.00"))
+        assert balance == Decimal("2000.00")
 
     def test_calculate_category_percentage(self):
         """Testa se a porcentagem por categoria é calculada corretamente."""
         service = FinancialAnalysisService(self.user, self.month)
 
         percentage = service.calculate_category_percentage(Decimal("1800.00"), Decimal("5000.00"))
-        self.assertEqual(percentage, Decimal("36.00"))
+        assert percentage == Decimal("36.00")
 
     def test_generate_financial_alerts_housing_warning(self):
         """Testa se alerta de moradia é gerado corretamente."""
@@ -103,8 +105,8 @@ class FinancialAnalysisServiceTestCase(TestCase):
         alerts = service.generate_financial_alerts()
 
         housing_alerts = [a for a in alerts if "moradia" in a["title"].lower()]
-        self.assertTrue(len(housing_alerts) > 0)
-        self.assertEqual(housing_alerts[0]["type"], "warning")
+        assert len(housing_alerts) > 0
+        assert housing_alerts[0]["type"] == "warning"
 
     def test_generate_financial_alerts_no_income(self):
         """Testa alertas quando não há renda cadastrada."""
@@ -115,21 +117,21 @@ class FinancialAnalysisServiceTestCase(TestCase):
         service = FinancialAnalysisService(user_without_income, self.month)
         alerts = service.generate_financial_alerts()
 
-        self.assertEqual(len(alerts), 1)
-        self.assertEqual(alerts[0]["type"], "warning")
-        self.assertIn("Renda não informada", alerts[0]["title"])
+        assert len(alerts) == 1
+        assert alerts[0]["type"] == "warning"
+        assert "Renda não informada" in alerts[0]["title"]
 
     def test_save_alerts_to_database(self):
         """Testa se os alertas são salvos no banco de dados."""
         service = FinancialAnalysisService(self.user, self.month)
         alerts = service.generate_financial_alerts()
 
-        self.assertEqual(FinancialAlert.objects.filter(user=self.user).count(), 0)
+        assert FinancialAlert.objects.filter(user=self.user).count() == 0
 
         service.save_alerts_to_database(alerts)
 
         saved_alerts = FinancialAlert.objects.filter(user=self.user, month=self.month)
-        self.assertEqual(saved_alerts.count(), len(alerts))
+        assert saved_alerts.count() == len(alerts)
 
     def test_get_financial_summary(self):
         """Testa se o resumo financeiro é gerado corretamente."""
@@ -148,25 +150,25 @@ class FinancialAnalysisServiceTestCase(TestCase):
         ]
 
         for key in expected_keys:
-            self.assertIn(key, summary)
+            assert key in summary
 
-        self.assertEqual(summary["income"], Decimal("5000.00"))
-        self.assertEqual(summary["total_expenses"], Decimal("3000.00"))
-        self.assertEqual(summary["balance"], Decimal("2000.00"))
-        self.assertEqual(summary["financial_health"], "excellent")
+        assert summary["income"] == Decimal("5000.00")
+        assert summary["total_expenses"] == Decimal("3000.00")
+        assert summary["balance"] == Decimal("2000.00")
+        assert summary["financial_health"] == "excellent"
 
     def test_financial_health_calculation(self):
         """Testa diferentes cenários de saúde financeira."""
         service = FinancialAnalysisService(self.user, self.month)
 
         health = service._calculate_financial_health(Decimal("5000.00"), Decimal("3000.00"))
-        self.assertEqual(health, "excellent")
+        assert health == "excellent"
 
         health = service._calculate_financial_health(Decimal("5000.00"), Decimal("6000.00"))
-        self.assertEqual(health, "critical")
+        assert health == "critical"
 
         health = service._calculate_financial_health(Decimal("0.00"), Decimal("1000.00"))
-        self.assertEqual(health, "unknown")
+        assert health == "unknown"
 
 
 class MonthlyIncomeModelTestCase(TestCase):
@@ -183,9 +185,9 @@ class MonthlyIncomeModelTestCase(TestCase):
             user=self.user, month=datetime.date(2025, 8, 1), amount=Decimal("5000.00")
         )
 
-        self.assertEqual(income.user, self.user)
-        self.assertEqual(income.amount, Decimal("5000.00"))
-        self.assertEqual(str(income), f"{self.user.username} - 08/2025 - R$ 5000.00")
+        assert income.user == self.user
+        assert income.amount == Decimal("5000.00")
+        assert str(income) == f"{self.user.username} - 08/2025 - R$ 5000.00"
 
     def test_unique_constraint(self):
         """Testa se a constraint unique_together funciona."""
@@ -193,7 +195,7 @@ class MonthlyIncomeModelTestCase(TestCase):
             user=self.user, month=datetime.date(2025, 8, 1), amount=Decimal("5000.00")
         )
 
-        with self.assertRaises(Exception):
+        with pytest.raises(Exception):
             MonthlyIncome.objects.create(
                 user=self.user, month=datetime.date(2025, 8, 1), amount=Decimal("6000.00")
             )
@@ -217,7 +219,7 @@ class FinancialAlertModelTestCase(TestCase):
             month=datetime.date(2025, 8, 1),
         )
 
-        self.assertEqual(alert.user, self.user)
-        self.assertEqual(alert.alert_type, "warning")
-        self.assertFalse(alert.is_read)
-        self.assertEqual(str(alert), f"{self.user.username} - Teste de Alerta")
+        assert alert.user == self.user
+        assert alert.alert_type == "warning"
+        assert alert.is_read is False
+        assert str(alert) == f"{self.user.username} - Teste de Alerta"

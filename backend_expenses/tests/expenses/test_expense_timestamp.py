@@ -18,10 +18,10 @@ def test_filter_expense_by_created():
     old_created = now_local - timedelta(days=1)
 
     expense1 = Expense.objects.create(
-        user=user, value=10, category="Alimentação", date=date.today()
+        user=user, value=10, category="alimentacao", date=date.today()
     )
 
-    Expense.objects.create(user=user, value=20, category="Transporte", date=date.today())
+    Expense.objects.create(user=user, value=20, category="transporte", date=date.today())
 
     Expense.objects.filter(id=expense1.id).update(created=old_created)
     expense1.refresh_from_db()
@@ -41,13 +41,13 @@ def test_filter_expense_by_created():
     assert (
         returned_expense["id"] == expense1.id
     ), f"Esperado expense1 (ID {expense1.id}), mas obteve ID {returned_expense['id']}"
-    assert returned_expense["category"] == "Alimentação", "Categoria incorreta retornada"
+    assert returned_expense["category"] == "alimentacao", "Categoria incorreta retornada"
 
 
 @pytest.mark.django_db
 def test_expense_created_and_modified_in_response():
     user = get_user_model().objects.create_user(username="checkfields", password="123")
-    expense = Expense.objects.create(user=user, value=15, category="Lazer", date=date.today())
+    expense = Expense.objects.create(user=user, value=15, category="lazer", date=date.today())
     client = APIClient()
     client.force_authenticate(user=user)
     response = client.get(f"/api/expenses/{expense.id}/")

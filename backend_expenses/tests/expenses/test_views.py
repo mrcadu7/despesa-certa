@@ -66,13 +66,13 @@ def test_update_expense_not_owner():
     owner = get_user_model().objects.create_user(username="owner2", password="123")
     other = get_user_model().objects.create_user(username="other", password="123")
     expense = Expense.objects.create(
-        user=owner, value=10, category="Alimentação", date=date.today()
+        user=owner, value=10, category="alimentacao", date=date.today()
     )
     client = APIClient()
     client.force_authenticate(user=other)
     data = {
         "value": 50,
-        "category": "Alimentação",
+        "category": "alimentacao",
         "date": date.today(),
         "description": "Hack",
     }
@@ -83,7 +83,7 @@ def test_update_expense_not_owner():
 @pytest.mark.django_db
 def test_delete_expense_owner():
     user = get_user_model().objects.create_user(username="delowner", password="123")
-    expense = Expense.objects.create(user=user, value=10, category="Alimentação", date=date.today())
+    expense = Expense.objects.create(user=user, value=10, category="alimentacao", date=date.today())
     client = APIClient()
     client.force_authenticate(user=user)
     response = client.delete(f"/api/expenses/{expense.id}/")
@@ -96,7 +96,7 @@ def test_delete_expense_not_owner():
     owner = get_user_model().objects.create_user(username="delowner2", password="123")
     other = get_user_model().objects.create_user(username="delother", password="123")
     expense = Expense.objects.create(
-        user=owner, value=10, category="Alimentação", date=date.today()
+        user=owner, value=10, category="alimentacao", date=date.today()
     )
     client = APIClient()
     client.force_authenticate(user=other)
@@ -124,8 +124,8 @@ def test_create_expense_authenticated():
 def test_list_expenses_only_own():
     user1 = get_user_model().objects.create_user(username="user1", password="123")
     user2 = get_user_model().objects.create_user(username="user2", password="123")
-    Expense.objects.create(user=user1, value=10, category="Alimentação", date=date.today())
-    Expense.objects.create(user=user2, value=20, category="Transporte", date=date.today())
+    Expense.objects.create(user=user1, value=10, category="alimentacao", date=date.today())
+    Expense.objects.create(user=user2, value=20, category="transporte", date=date.today())
     client = APIClient()
     client.force_authenticate(user=user1)
     response = client.get("/api/expenses/")
@@ -139,7 +139,7 @@ def test_create_expense_unauthenticated():
     client = APIClient()
     data = {
         "value": 30.0,
-        "category": "Alimentação",
+        "category": "alimentacao",
         "date": date.today(),
         "description": "Lanche",
     }

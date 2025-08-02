@@ -34,11 +34,10 @@ class FinancialViewsTestCase(APITestCase):
         data = {"month": "2025-08-01", "amount": "5000.00"}
 
         response = self.client.post(url, data, format="json")
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        assert response.status_code == status.HTTP_201_CREATED
 
-        # Verificar se foi criado no banco
         income = MonthlyIncome.objects.get(user=self.user)
-        self.assertEqual(income.amount, Decimal("5000.00"))
+        assert income.amount == Decimal("5000.00")
 
     def test_monthly_income_list(self):
         """Testa listagem de rendas mensais."""
@@ -47,8 +46,8 @@ class FinancialViewsTestCase(APITestCase):
         url = reverse("monthlyincome-list")
         response = self.client.get(url)
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data["results"]), 1)
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data["results"]) == 1
 
     def test_financial_alerts_list(self):
         """Testa listagem de alertas financeiros."""
@@ -63,8 +62,8 @@ class FinancialViewsTestCase(APITestCase):
         url = reverse("financialalert-list")
         response = self.client.get(url)
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data["results"]), 1)
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data["results"]) == 1
 
     def test_financial_summary_view(self):
         """Testa a view de resumo financeiro."""
@@ -73,7 +72,7 @@ class FinancialViewsTestCase(APITestCase):
         url = reverse("financial-summary")
         response = self.client.get(url)
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        assert response.status_code == status.HTTP_200_OK
 
         expected_keys = [
             "month",
@@ -87,7 +86,7 @@ class FinancialViewsTestCase(APITestCase):
         ]
 
         for key in expected_keys:
-            self.assertIn(key, response.data)
+            assert key in response.data
 
     def test_generate_alerts_view(self):
         """Testa a view de geração de alertas."""
@@ -97,9 +96,9 @@ class FinancialViewsTestCase(APITestCase):
         data = {"month": "2025-08"}
         response = self.client.post(url, data, format="json")
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn("message", response.data)
-        self.assertIn("alerts", response.data)
+        assert response.status_code == status.HTTP_200_OK
+        assert "message" in response.data
+        assert "alerts" in response.data
 
     def test_unauthorized_access(self):
         """Testa acesso não autorizado."""
@@ -108,7 +107,7 @@ class FinancialViewsTestCase(APITestCase):
         url = reverse("financial-summary")
         response = self.client.get(url)
 
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 class MonthlyIncomeValidationTestCase(APITestCase):
@@ -128,7 +127,7 @@ class MonthlyIncomeValidationTestCase(APITestCase):
         data = {"month": "2025-08-01", "amount": "-1000.00"}
 
         response = self.client.post(url, data, format="json")
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_duplicate_month(self):
         """Testa criação de renda duplicada para o mesmo mês."""
@@ -136,8 +135,8 @@ class MonthlyIncomeValidationTestCase(APITestCase):
         data = {"month": "2025-01-01", "amount": "5000.00"}
 
         response = self.client.post(url, data, format="json")
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        assert response.status_code == status.HTTP_201_CREATED
 
         data["amount"] = "6000.00"
         response = self.client.post(url, data, format="json")
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
