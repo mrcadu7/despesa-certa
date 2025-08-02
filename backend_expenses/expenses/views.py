@@ -36,7 +36,14 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
 
 
 class ExpenseViewSet(viewsets.ModelViewSet):
-    """ViewSet para gerenciar despesas."""
+    """
+    ViewSet para gerenciar despesas do usuário autenticado.
+
+    - Permite criar, listar, editar e excluir despesas.
+    - Filtros disponíveis: data, categoria, valor, descrição.
+    - Pesquisa: por descrição ou categoria.
+    - Ordenação: por data, valor ou categoria.
+    """
 
     serializer_class = ExpenseSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
@@ -78,7 +85,11 @@ class ExportExpensesCSVView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        """Export expenses to Excel using Celery."""
+        """
+        Exporta todas as despesas do usuário autenticado para um arquivo Excel (.xlsx).
+
+        O arquivo é gerado de forma assíncrona via Celery e baixado automaticamente.
+        """
         import base64
 
         try:
@@ -131,7 +142,12 @@ class ExportExpensesCSVView(APIView):
 
 
 class MonthlyIncomeViewSet(viewsets.ModelViewSet):
-    """ViewSet para gerenciar renda mensal."""
+    """
+    ViewSet para gerenciar rendas mensais do usuário.
+
+    - Permite cadastrar, listar, editar e excluir rendas mensais.
+    - Cada mês só pode ter uma renda cadastrada por usuário.
+    """
 
     serializer_class = MonthlyIncomeSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -147,7 +163,12 @@ class MonthlyIncomeViewSet(viewsets.ModelViewSet):
 
 
 class FinancialAlertViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet para visualizar alertas financeiros."""
+    """
+    ViewSet para visualizar alertas financeiros gerados pela análise do sistema.
+
+    - Permite listar alertas, marcar como lido individualmente ou todos.
+    - Alertas são gerados automaticamente ou manualmente.
+    """
 
     serializer_class = FinancialAlertSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -171,7 +192,12 @@ class FinancialAlertViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class FinancialSummaryView(APIView):
-    """View para obter resumo financeiro e análise."""
+    """
+    Endpoint para obter o resumo financeiro do mês.
+
+    - Retorna renda, despesas totais, saldo, percentuais por categoria, alertas e saúde financeira.
+    - O mês pode ser especificado via parâmetro (?month=YYYY-MM).
+    """
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -200,7 +226,12 @@ class FinancialSummaryView(APIView):
 
 
 class GenerateFinancialAlertsView(APIView):
-    """View para gerar alertas financeiros manualmente."""
+    """
+    Endpoint para gerar alertas financeiros manualmente para o mês desejado.
+
+    - Útil para forçar a análise e geração de alertas sem depender de eventos automáticos.
+    - O mês deve ser informado no corpo da requisição ("month": "YYYY-MM").
+    """
 
     permission_classes = [permissions.IsAuthenticated]
 
