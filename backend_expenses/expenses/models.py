@@ -1,13 +1,14 @@
 import datetime
 from decimal import Decimal
 
+from django_extensions.db.models import TimeStampedModel
+
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 from django.forms.models import model_to_dict
 from django.utils import timezone
-from django_extensions.db.models import TimeStampedModel
 
 
 class ExpenseQuerySet(models.QuerySet):
@@ -32,19 +33,75 @@ class ExpenseQuerySet(models.QuerySet):
         return self.filter(description__icontains=text)
 
 
-class Expense(TimeStampedModel, models.Model):
+class MonthlyIncome(TimeStampedModel, models.Model):
+    """Modelo para armazenar a renda mensal do usuário."""
+
     user = models.ForeignKey(
-        get_user_model(), on_delete=models.CASCADE, related_name="expenses"
+        get_user_model(), on_delete=models.CASCADE, related_name="monthly_incomes"
     )
+    month = models.DateField()  # Primeiro dia do mês
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+
+    class Meta:
+        unique_together = ["user", "month"]
+        ordering = ["-month"]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.month.strftime('%m/%Y')} - R$ {self.amount}"
+
+
+class FinancialAlert(models.Model):
+    """Modelo para armazenar alertas financeiros gerados."""
+
+    ALERT_TYPES = [
+        ("warning", "Atenção"),
+        ("danger", "Crítico"),
+        ("info", "Informativo"),
+        ("success", "Positivo"),
+    ]
+
+    user = models.ForeignKey(
+        get_user_model(), on_delete=models.CASCADE, related_name="financial_alerts"
+    )
+    alert_type = models.CharField(max_length=10, choices=ALERT_TYPES)
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    month = models.DateField()  # Mês de referência do alerta
+    created = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-created"]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.title}"
+
+
+class Expense(TimeStampedModel, models.Model):
+    CATEGORY_CHOICES = [
+        ("moradia", "Moradia"),
+        ("alimentacao", "Alimentação"),
+        ("transporte", "Transporte"),
+        ("saude", "Saúde"),
+        ("educacao", "Educação"),
+        ("lazer", "Lazer"),
+        ("vestuario", "Vestuário"),
+        ("servicos", "Serviços"),
+        ("dividas", "Dívidas"),
+        ("investimentos", "Investimentos"),
+        ("outros", "Outros"),
+    ]
+
+    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="expenses")
     value = models.DecimalField(max_digits=10, decimal_places=2)
-    category = models.CharField(max_length=50)
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
     date = models.DateField()
     description = models.TextField(blank=True)
 
     objects = ExpenseQuerySet.as_manager()
 
     def __str__(self):
-        return f"{self.category} - ${self.value} on {self.date}"
+        return f"{self.get_category_display()} - R$ {self.value} em {self.date}"
 
     class Meta:
         ordering = ["-date"]
@@ -61,9 +118,7 @@ class ExpenseHistory(models.Model):
     expense = models.ForeignKey(
         "expenses.Expense", on_delete=models.CASCADE, related_name="history"
     )
-    user = models.ForeignKey(
-        get_user_model(), on_delete=models.SET_NULL, null=True, blank=True
-    )
+    user = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, null=True, blank=True)
     action = models.CharField(max_length=10, choices=ACTION_CHOICES)
     date = models.DateTimeField(auto_now_add=True)
     data = models.JSONField()

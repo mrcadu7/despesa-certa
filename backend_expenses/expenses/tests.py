@@ -1,7 +1,9 @@
 from datetime import date, timedelta
 
 import pytest
+
 from django.contrib.auth import get_user_model
+
 from expenses.serializers import ExpenseSerializer
 
 
@@ -11,7 +13,7 @@ def test_expense_serializer_valid():
     data = {
         "user": user.id,
         "value": 100.0,
-        "category": "Alimentação",
+        "category": "alimentacao",
         "date": date.today(),
         "description": "Almoço",
     }
@@ -40,10 +42,10 @@ def test_expense_serializer_invalid_date():
     data = {
         "user": user.id,
         "value": 100.0,
-        "category": "Transporte",
+        "category": "transporte",
         "date": date.today() + timedelta(days=1),
         "description": "Futuro",
     }
     serializer = ExpenseSerializer(data=data)
     assert not serializer.is_valid()
-    assert "pydantic" in serializer.errors
+    assert "validation" in serializer.errors

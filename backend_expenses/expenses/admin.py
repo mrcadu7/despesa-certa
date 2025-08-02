@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Expense, ExpenseHistory
+from .models import Expense, ExpenseHistory, FinancialAlert, MonthlyIncome
 
 
 @admin.register(Expense)
@@ -18,3 +18,22 @@ class ExpenseHistoryAdmin(admin.ModelAdmin):
     list_filter = ("action", "date", "user")
     search_fields = ("expense__description", "user__username", "action")
     readonly_fields = ("expense", "user", "action", "date", "data")
+
+
+@admin.register(MonthlyIncome)
+class MonthlyIncomeAdmin(admin.ModelAdmin):
+    list_display = ("user", "month", "amount", "created")
+    list_filter = ("month", "user")
+    search_fields = ("user__username",)
+    date_hierarchy = "month"
+    ordering = ("-month",)
+
+
+@admin.register(FinancialAlert)
+class FinancialAlertAdmin(admin.ModelAdmin):
+    list_display = ("user", "alert_type", "title", "month", "is_read", "created")
+    list_filter = ("alert_type", "is_read", "month", "user")
+    search_fields = ("user__username", "title", "message")
+    date_hierarchy = "created"
+    ordering = ("-created",)
+    readonly_fields = ("created",)

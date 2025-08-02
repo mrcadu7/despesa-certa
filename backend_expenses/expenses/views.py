@@ -1,4 +1,5 @@
 import time
+from datetime import date
 
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, status, viewsets
@@ -9,10 +10,17 @@ from rest_framework.views import APIView
 from django.db.models import Sum
 from django.db.models.functions import TruncMonth
 from django.http import HttpResponse
+from django.utils import timezone
 
 from .filters import ExpenseFilter
-from .models import Expense
-from .serializers import ExpenseSerializer
+from .models import Expense, FinancialAlert, MonthlyIncome
+from .serializers import (
+    ExpenseSerializer,
+    FinancialAlertSerializer,
+    FinancialSummarySerializer,
+    MonthlyIncomeSerializer,
+)
+from .services import FinancialAnalysisService
 from .tasks import export_expenses_csv
 
 
@@ -120,3 +128,104 @@ class ExportExpensesCSVView(APIView):
                 {"error": f"Erro interno: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class MonthlyIncomeViewSet(viewsets.ModelViewSet):
+    """ViewSet para gerenciar renda mensal."""
+
+    serializer_class = MonthlyIncomeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return MonthlyIncome.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class FinancialAlertViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet para visualizar alertas financeiros."""
+
+    serializer_class = FinancialAlertSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return FinancialAlert.objects.filter(user=self.request.user)
+
+    @action(detail=True, methods=["patch"])
+    def mark_as_read(self, request, pk=None):
+        """Marca um alerta como lido."""
+        alert = self.get_object()
+        alert.is_read = True
+        alert.save()
+        return Response({"status": "alert marked as read"})
+
+    @action(detail=False, methods=["patch"])
+    def mark_all_as_read(self, request):
+        """Marca todos os alertas como lidos."""
+        self.get_queryset().update(is_read=True)
+        return Response({"status": "all alerts marked as read"})
+
+
+class FinancialSummaryView(APIView):
+    """View para obter resumo financeiro e análise."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        """Retorna resumo financeiro do mês atual ou especificado."""
+        month_str = request.GET.get("month")
+        if month_str:
+            try:
+                year, month = map(int, month_str.split("-"))
+                target_month = date(year, month, 1)
+            except (ValueError, TypeError):
+                return Response(
+                    {"error": "Formato de mês inválido. Use YYYY-MM"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            target_month = timezone.now().date().replace(day=1)
+
+        analysis_service = FinancialAnalysisService(request.user, target_month)
+        summary = analysis_service.get_financial_summary()
+
+        analysis_service.save_alerts_to_database(summary["alerts"])
+
+        serializer = FinancialSummarySerializer(summary)
+        return Response(serializer.data)
+
+
+class GenerateFinancialAlertsView(APIView):
+    """View para gerar alertas financeiros manualmente."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        """Gera alertas financeiros para o mês especificado."""
+        month_str = request.data.get("month")
+        if month_str:
+            try:
+                year, month = map(int, month_str.split("-"))
+                target_month = date(year, month, 1)
+            except (ValueError, TypeError):
+                return Response(
+                    {"error": "Formato de mês inválido. Use YYYY-MM"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            target_month = timezone.now().date().replace(day=1)
+
+        analysis_service = FinancialAnalysisService(request.user, target_month)
+        alerts = analysis_service.generate_financial_alerts()
+        analysis_service.save_alerts_to_database(alerts)
+
+        return Response(
+            {
+                "message": f'{len(alerts)} alertas gerados para {target_month.strftime("%m/%Y")}',
+                "alerts": alerts,
+            }
+        )

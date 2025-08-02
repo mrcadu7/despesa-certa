@@ -1,10 +1,11 @@
+import base64
 import logging
+from collections import defaultdict
+from decimal import Decimal
+from io import BytesIO
 
 from celery import shared_task
 from xlsxwriter import Workbook
-import base64
-from collections import defaultdict
-from io import BytesIO
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -27,7 +28,7 @@ def export_expenses_csv(user_id):
             user=user, date__year=now.year, date__month=now.month
         ).order_by("-date")
 
-        categoria_totais = defaultdict(float)
+        categoria_totais = defaultdict(Decimal)
 
         with BytesIO() as fp:
             workbook = Workbook(
@@ -91,7 +92,7 @@ def export_expenses_csv(user_id):
                     workbook.add_format({"num_format": "dd/mm/yyyy hh:mm:ss"}),
                 )
 
-                categoria_totais[expense.category] += float(expense.value)
+                categoria_totais[expense.category] += expense.value
                 row += 1
 
             row += 2
@@ -100,10 +101,10 @@ def export_expenses_csv(user_id):
 
             for categoria, total in categoria_totais.items():
                 worksheet.write_string(row, 0, str(categoria))
-                worksheet.write_number(row, 1, total, currency_format)
+                worksheet.write_number(row, 1, float(total), currency_format)
                 row += 1
 
-            total_geral = sum(categoria_totais.values())
+            total_geral = float(sum(categoria_totais.values()))
             row += 1
             worksheet.write_string(row, 0, "TOTAL GERAL", header_format)
             worksheet.write_number(row, 1, total_geral, currency_format)
@@ -125,7 +126,6 @@ def export_expenses_csv(user_id):
                 f"concluída para usuário {user.username}"
             )
 
-            # Novo formato: despesas-<uid>-<mm_yyyy>-<hhmmss>.xlsx
             filename = f"despesas-{user_id}-{now.strftime('%m_%Y')}-{now.strftime('%H%M%S')}.xlsx"
             return {
                 "content": file_base64,
