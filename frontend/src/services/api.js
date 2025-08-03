@@ -1,7 +1,21 @@
 import axios from 'axios';
+import CryptoJS from 'crypto-js';
 
 // Configuração base do axios
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+// Chave para criptografia (em produção, deve vir de variável de ambiente)
+const ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY || 'despesa-certa-secret-key-2025';
+
+// Funções de criptografia usando AES (compatível com browser)
+const encryptPassword = (password) => {
+  try {
+    return CryptoJS.AES.encrypt(password, ENCRYPTION_KEY).toString();
+  } catch (error) {
+    console.error('Erro ao criptografar senha:', error);
+    return password; // Fallback para senha em texto plano
+  }
+};
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -26,7 +40,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Interceptor para tratar erros de resposta
+// Interceptor para tratar erros de resposta e refresh automático
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -43,23 +57,32 @@ api.interceptors.response.use(
           
           if (refreshToken) {
             // Tentar renovar o token
-            const response = await api.post('/token/refresh/', { refresh: refreshToken });
-            const newAccessToken = response.data.access;
+            const response = await axios.post(`${API_BASE_URL}/token/refresh/`, { 
+              refresh: refreshToken 
+            });
+            const newTokens = response.data;
             
-            // Atualizar o token no storage
-            authData.state.token = newAccessToken;
+            // Atualizar tokens no storage
+            authData.state.token = newTokens.access;
+            if (newTokens.refresh) {
+              authData.state.refreshToken = newTokens.refresh;
+            }
             localStorage.setItem('auth-storage', JSON.stringify(authData));
             
             // Refazer a requisição original
-            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+            originalRequest.headers.Authorization = `Bearer ${newTokens.access}`;
             return api(originalRequest);
           }
         }
       } catch (refreshError) {
         console.error('Erro ao renovar token:', refreshError);
+        // Limpar storage e redirecionar para login
+        localStorage.removeItem('auth-storage');
+        window.location.href = '/auth';
+        return Promise.reject(refreshError);
       }
       
-      // Se chegou aqui, o refresh falhou ou não há token
+      // Se chegou aqui, não há token de refresh
       localStorage.removeItem('auth-storage');
       window.location.href = '/auth';
     }
@@ -68,15 +91,69 @@ api.interceptors.response.use(
   }
 );
 
+// Função para verificar e renovar token automaticamente
+const scheduleTokenRefresh = () => {
+  setInterval(async () => {
+    try {
+      const authStorage = localStorage.getItem('auth-storage');
+      if (authStorage) {
+        const authData = JSON.parse(authStorage);
+        const token = authData?.state?.token;
+        const refreshToken = authData?.state?.refreshToken;
+        
+        if (token && refreshToken) {
+          // Decodificar o token para verificar se está próximo do vencimento
+          const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+          const currentTime = Math.floor(Date.now() / 1000);
+          const timeUntilExpiry = tokenPayload.exp - currentTime;
+          
+          // Se o token expira em menos de 30 minutos, renovar
+          if (timeUntilExpiry < 1800) {
+            const response = await axios.post(`${API_BASE_URL}/token/refresh/`, {
+              refresh: refreshToken
+            });
+            const newTokens = response.data;
+            
+            // Atualizar tokens no storage
+            authData.state.token = newTokens.access;
+            if (newTokens.refresh) {
+              authData.state.refreshToken = newTokens.refresh;
+            }
+            localStorage.setItem('auth-storage', JSON.stringify(authData));
+            
+            console.log('Token renovado automaticamente');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Erro na renovação automática do token:', error);
+    }
+  }, 300000); // Verificar a cada 5 minutos
+};
+
+// Iniciar verificação automática de token
+scheduleTokenRefresh();
+
 // Serviços de autenticação
 export const authService = {
   login: async (email, password) => {
-    const response = await api.post('/token/', { username: email, password });
+    // Temporariamente desabilitando criptografia para testar
+    const response = await api.post('/token/', { 
+      username: email, 
+      password: password  // Senha em texto plano temporariamente
+    });
     return response.data;
   },
   
   register: async (username, password, email = '') => {
-    const response = await api.post('/register/', { username, password, email });
+    // Criptografar a senha antes de enviar
+    const encryptedPassword = encryptPassword(password);
+    const response = await api.post('/register/', { 
+      username, 
+      password: encryptedPassword, 
+      email,
+      encrypted: true // Flag para indicar que a senha está criptografada
+    });
     return response.data;
   },
   

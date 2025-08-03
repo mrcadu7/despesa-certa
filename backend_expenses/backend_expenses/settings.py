@@ -49,6 +49,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    'backend_expenses.crypto_middleware.PasswordDecryptionMiddleware',  # Middleware de descriptografia
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -192,11 +193,15 @@ REST_FRAMEWORK = {
 # SimpleJWT settings
 from datetime import timedelta
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'ROTATE_REFRESH_TOKENS': False,
-    'BLACKLIST_AFTER_ROTATION': True,
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),  # 24 horas
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),  # 30 dias
+    'ROTATE_REFRESH_TOKENS': True,  # Renovar refresh token a cada uso
+    'BLACKLIST_AFTER_ROTATION': False,  # Não blacklistar tokens antigos
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,
     'AUTH_HEADER_TYPES': ('Bearer',),
+    'UPDATE_LAST_LOGIN': True,  # Atualizar último login
 }
+
+# Configurações de criptografia
+ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', 'despesa-certa-secret-key-2025')

@@ -7,6 +7,7 @@ pre-commit>=3.7,<4.0
 drf-yasg>=1.21.7
 xlsxwriter>=3.2,<4.0
 pytz>=2024.1,<2025.0
+pycryptodome>=3.19,<4.0
 
 pytest-xdist>=3.6,<4.0
 pydantic>=2.0,<3.0

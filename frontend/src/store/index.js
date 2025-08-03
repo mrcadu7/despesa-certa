@@ -29,8 +29,30 @@ export const useAuthStore = create(
         });
       },
       
+      updateTokens: (accessToken, refreshToken = null) => {
+        const currentState = get();
+        set({
+          token: accessToken,
+          refreshToken: refreshToken || currentState.refreshToken,
+        });
+      },
+      
       updateUser: (userData) => {
         set({ user: userData });
+      },
+      
+      // Verificar se o token está válido
+      isTokenValid: () => {
+        const { token } = get();
+        if (!token) return false;
+        
+        try {
+          const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+          const currentTime = Math.floor(Date.now() / 1000);
+          return tokenPayload.exp > currentTime;
+        } catch {
+          return false;
+        }
       },
     }),
     {
