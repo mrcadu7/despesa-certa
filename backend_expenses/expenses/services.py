@@ -20,14 +20,11 @@ class FinancialAnalysisService:
         self.month = month or timezone.now().date().replace(day=1)
 
     def get_monthly_income(self) -> Decimal:
-        """Obtém a renda mensal do usuário para o mês especificado."""
-        try:
-            income = MonthlyIncome.objects.get(
-                user=self.user, date__year=self.month.year, date__month=self.month.month
-            )
-            return income.amount
-        except MonthlyIncome.DoesNotExist:
-            return Decimal("0.00")
+        """Obtém a soma das rendas mensais do usuário para o mês especificado."""
+        total = MonthlyIncome.objects.filter(
+            user=self.user, date__year=self.month.year, date__month=self.month.month
+        ).aggregate(total=Sum("amount"))["total"]
+        return total or Decimal("0.00")
 
     def get_expenses_by_category(self) -> Dict[str, Decimal]:
         """Obtém gastos por categoria no mês especificado."""

@@ -109,6 +109,16 @@ class FinancialViewsTestCase(APITestCase):
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
+    def test_financial_summary_multiple_incomes(self):
+        """Testa se o resumo financeiro soma múltiplos incomes do mesmo mês."""
+        month = datetime.date(2025, 8, 1)
+        MonthlyIncome.objects.create(user=self.user, date=month, amount=Decimal("1000.00"))
+        MonthlyIncome.objects.create(user=self.user, date=month, amount=Decimal("2500.00"))
+        url = reverse("financial-summary")
+        response = self.client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert Decimal(response.data["income"]) == Decimal("3500.00")
+
 
 class MonthlyIncomeValidationTestCase(APITestCase):
     """Testes para validações de renda mensal."""
