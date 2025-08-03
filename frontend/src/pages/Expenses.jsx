@@ -68,27 +68,36 @@ const ExpenseForm = ({ open, onClose, expense = null, onSuccess }) => {
     value: '',
     category: '',
     date: new Date(),
-    is_recurring: false,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (expense) {
+      // Corrige bug de -1 dia: converte 'YYYY-MM-DD' para Date local
+      let dateValue = null;
+      if (expense.date) {
+        if (typeof expense.date === 'string' && expense.date.includes('-')) {
+          const [year, month, day] = expense.date.split('-');
+          dateValue = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+        } else if (expense.date instanceof Date) {
+          dateValue = expense.date;
+        } else {
+          dateValue = null;
+        }
+      }
       setFormData({
         description: expense.description,
         value: expense.value,
         category: expense.category,
-        date: new Date(expense.date),
-        is_recurring: expense.is_recurring,
+        date: dateValue,
       });
     } else {
       setFormData({
         description: '',
         value: '',
         category: '',
-        date: new Date(),
-        is_recurring: false,
+        date: null,
       });
     }
   }, [expense, open]);
@@ -99,10 +108,17 @@ const ExpenseForm = ({ open, onClose, expense = null, onSuccess }) => {
       setLoading(true);
       setError(null);
 
+      let dateStr = null;
+      if (formData.date instanceof Date && !isNaN(formData.date)) {
+        const year = formData.date.getUTCFullYear();
+        const month = String(formData.date.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(formData.date.getUTCDate()).padStart(2, '0');
+        dateStr = `${year}-${month}-${day}`;
+      }
       const data = {
         ...formData,
         value: parseFloat(formData.value),
-        date: formData.date.toISOString().split('T')[0],
+        date: dateStr,
       };
 
       if (expense) {
@@ -199,14 +215,22 @@ const ExpenseForm = ({ open, onClose, expense = null, onSuccess }) => {
 const Expenses = () => {
   const navigate = useNavigate();
   const { expenses, setExpenses, isLoading, setLoading } = useAppStore();
-  
+
+  // Seleção em massa
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkForm, setBulkForm] = useState({
+    category: '',
+    date: null,
+  });
+
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  
+
   // Filtros e paginação
   const [filters, setFilters] = useState({
     search: '',
@@ -217,14 +241,16 @@ const Expenses = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [total, setTotal] = useState(0);
-  
+
   // Menu de ações
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [menuExpense, setMenuExpense] = useState(null);
 
+
+  // Só carrega ao montar ou ao mudar paginação
   useEffect(() => {
     loadExpenses();
-  }, [page, rowsPerPage, filters]);
+  }, [page, rowsPerPage]);
 
   const loadExpenses = async () => {
     try {
@@ -250,6 +276,12 @@ const Expenses = () => {
       }
       if (filters.date_end) {
         params.date_end = filters.date_end.toISOString().split('T')[0];
+      }
+      // category: só envia se não vazio
+      if (filters.category !== '') {
+        params.category = filters.category;
+      } else {
+        delete params.category;
       }
 
       const data = await expenseService.getAll(params);
@@ -384,10 +416,9 @@ const Expenses = () => {
           <Typography variant="h6" gutterBottom>
             Filtros
           </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={3}>
+          <Grid container spacing={2} alignItems="center" wrap="nowrap">
+            <Grid item sx={{ flexGrow: 1 }}>
               <TextField
-                fullWidth
                 label="Buscar"
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
@@ -397,44 +428,84 @@ const Expenses = () => {
                       <Search />
                     </InputAdornment>
                   ),
+                  sx: { fontSize: 18, height: 52 }
                 }}
+                InputLabelProps={{ sx: { fontSize: 18 } }}
+                size="medium"
+                fullWidth
+                sx={{ fontSize: 18, height: 52 }}
               />
             </Grid>
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>Categoria</InputLabel>
+            <Grid item sx={{ flexGrow: 1 }}>
+              <FormControl fullWidth size="medium" sx={{ height: 52 }}>
+                <InputLabel sx={{ fontSize: 18 }}>Categoria</InputLabel>
                 <Select
                   value={filters.category}
                   onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+                  label="Categoria"
+                  sx={{ fontSize: 18, height: 52 }}
                 >
                   <MenuItem value="">Todas</MenuItem>
                   {CATEGORIES.map((cat) => (
-                    <MenuItem key={cat.value} value={cat.value}>
+                    <MenuItem key={cat.value} value={cat.value} sx={{ fontSize: 18 }}>
                       {cat.label}
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid item sx={{ flexGrow: 1 }}>
+              <FormControl fullWidth size="medium" sx={{ height: 52 }}>
+                <InputLabel sx={{ fontSize: 18 }}>Recorrente</InputLabel>
+                <Select
+                  value={filters.is_recurring}
+                  onChange={(e) => setFilters({ ...filters, is_recurring: e.target.value })}
+                  label="Recorrente"
+                  sx={{ fontSize: 18, height: 52 }}
+                >
+                  <MenuItem value="">Todos</MenuItem>
+                  <MenuItem value="true" sx={{ fontSize: 18 }}>Sim</MenuItem>
+                  <MenuItem value="false" sx={{ fontSize: 18 }}>Não</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item sx={{ flexGrow: 1 }}>
               <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
                 <DatePicker
                   label="Data Início"
                   value={filters.date_start}
-                  onChange={(newValue) => setFilters({ ...filters, date_start: newValue })}
-                  renderInput={(params) => <TextField {...params} fullWidth />}
+                  onChange={(newValue) => {
+                    setFilters({ ...filters, date_start: newValue });
+                  }}
+                  renderInput={(params) => <TextField {...params} size="medium" fullWidth sx={{ fontSize: 18, height: 52 }} InputLabelProps={{ sx: { fontSize: 18 } }} />}
                 />
               </LocalizationProvider>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid item sx={{ flexGrow: 1 }}>
               <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
                 <DatePicker
                   label="Data Fim"
                   value={filters.date_end}
-                  onChange={(newValue) => setFilters({ ...filters, date_end: newValue })}
-                  renderInput={(params) => <TextField {...params} fullWidth />}
+                  onChange={(newValue) => {
+                    setFilters({ ...filters, date_end: newValue });
+                  }}
+                  renderInput={(params) => <TextField {...params} size="medium" fullWidth sx={{ fontSize: 18, height: 52 }} InputLabelProps={{ sx: { fontSize: 18 } }} />}
                 />
               </LocalizationProvider>
+            </Grid>
+            <Grid item sx={{ minWidth: 160, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<FilterList />}
+                sx={{ height: 52, minWidth: 120, fontSize: 18 }}
+                onClick={() => {
+                  setPage(0);
+                  loadExpenses();
+                }}
+              >
+                Filtrar
+              </Button>
             </Grid>
           </Grid>
           <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
@@ -449,23 +520,72 @@ const Expenses = () => {
         </CardContent>
       </Card>
 
-      {/* Tabela */}
+      {/* Tabela com seleção em massa */}
       <Card>
+        <Box display="flex" justifyContent="space-between" alignItems="center" px={2} py={1}>
+          <Button
+            variant="outlined"
+            disabled={selectedIds.length === 0}
+            onClick={() => setBulkDialogOpen(true)}
+          >
+            Ações em Massa ({selectedIds.length})
+          </Button>
+          <Button
+            variant="outlined"
+            color="error"
+            disabled={selectedIds.length === 0}
+            onClick={async () => {
+              if (window.confirm(`Excluir ${selectedIds.length} despesas selecionadas? Esta ação não pode ser desfeita.`)) {
+                const result = await expenseService.bulkDelete(selectedIds);
+                setSelectedIds([]);
+                loadExpenses();
+                setSuccess(`Despesas excluídas em massa: ${result.deleted_count || 0}`);
+              }
+            }}
+          >
+            Excluir Selecionados
+          </Button>
+        </Box>
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow>
+                <TableCell padding="checkbox">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.length === expenses.length && expenses.length > 0}
+                    onChange={e => {
+                      if (e.target.checked) {
+                        setSelectedIds(expenses.map(i => i.id));
+                      } else {
+                        setSelectedIds([]);
+                      }
+                    }}
+                  />
+                </TableCell>
                 <TableCell>Descrição</TableCell>
                 <TableCell>Valor</TableCell>
                 <TableCell>Categoria</TableCell>
                 <TableCell>Data</TableCell>
-                <TableCell>Recorrente</TableCell>
                 <TableCell align="right">Ações</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {expenses.map((expense) => (
                 <TableRow key={expense.id}>
+                  <TableCell padding="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(expense.id)}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setSelectedIds([...selectedIds, expense.id]);
+                        } else {
+                          setSelectedIds(selectedIds.filter(id => id !== expense.id));
+                        }
+                      }}
+                    />
+                  </TableCell>
                   <TableCell>
                     <Box display="flex" alignItems="center" gap={1}>
                       <Receipt color="action" />
@@ -485,14 +605,18 @@ const Expenses = () => {
                     />
                   </TableCell>
                   <TableCell>
-                    {new Date(expense.date).toLocaleDateString('pt-BR')}
-                  </TableCell>
-                  <TableCell>
-                    {expense.is_recurring ? (
-                      <Chip label="Sim" color="primary" size="small" />
-                    ) : (
-                      <Chip label="Não" color="default" size="small" />
-                    )}
+                    {expense.date ? (() => {
+                      if (typeof expense.date === 'string' && expense.date.includes('-')) {
+                        const [year, month, day] = expense.date.split('-');
+                        return `${day}/${month}/${year}`;
+                      } else if (expense.date instanceof Date && !isNaN(expense.date)) {
+                        const year = expense.date.getFullYear();
+                        const month = String(expense.date.getMonth() + 1).padStart(2, '0');
+                        const day = String(expense.date.getDate()).padStart(2, '0');
+                        return `${day}/${month}/${year}`;
+                      }
+                      return '';
+                    })() : ''}
                   </TableCell>
                   <TableCell align="right">
                     <Tooltip title="Mais opções">
@@ -524,6 +648,76 @@ const Expenses = () => {
           }
         />
       </Card>
+      {/* Modal de edição em massa */}
+      <Dialog open={bulkDialogOpen} onClose={() => setBulkDialogOpen(false)}>
+        <DialogTitle>Edição em Massa</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Categoria</InputLabel>
+                <Select
+                  value={bulkForm.category}
+                  onChange={e => setBulkForm({ ...bulkForm, category: e.target.value })}
+                >
+                  {CATEGORIES.map((cat) => (
+                    <MenuItem key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
+                <DatePicker
+                  label="Nova Data"
+                  value={bulkForm.date}
+                  onChange={newValue => setBulkForm({ ...bulkForm, date: newValue })}
+                  renderInput={params => <TextField {...params} fullWidth />}
+                />
+              </LocalizationProvider>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBulkDialogOpen(false)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={async () => {
+              // Chamada de API PATCH para atualizar em massa (bulk)
+              const updateData = {};
+              if (bulkForm.category) updateData.category = bulkForm.category;
+              if (bulkForm.date) {
+                let d = bulkForm.date;
+                if (typeof d === 'string' && d.includes('-')) {
+                  const [year, month, day] = d.split('-');
+                  d = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+                }
+                if (d instanceof Date && !isNaN(d)) {
+                  const year = d.getFullYear();
+                  const month = String(d.getMonth() + 1).padStart(2, '0');
+                  const day = String(d.getDate()).padStart(2, '0');
+                  updateData.date = `${year}-${month}-${day}`;
+                }
+              }
+              const result = await expenseService.bulkPatch(selectedIds, updateData);
+              setBulkDialogOpen(false);
+              setSelectedIds([]);
+              setBulkForm({ category: '', date: null });
+              loadExpenses();
+              setSuccess(`Despesas atualizadas em massa: ${result.updated_count || 0}`);
+              if (result.errors) {
+                setError('Algumas despesas não foram atualizadas. Verifique os detalhes.');
+                console.error('Erros no bulk update:', result.errors);
+              }
+            }}
+            disabled={selectedIds.length === 0}
+          >
+            Salvar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Menu de Ações */}
       <Menu

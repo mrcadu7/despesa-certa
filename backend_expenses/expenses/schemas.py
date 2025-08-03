@@ -62,6 +62,35 @@ class ExpenseSchema(BaseModel):
         return v
 
 
+class ExpensePartialSchema(BaseModel):
+    value: Optional[Decimal] = Field(
+        None, gt=0, decimal_places=2, description="Valor da despesa (maior que zero)"
+    )
+    category: Optional[CategoryType] = Field(None, description="Categoria da despesa")
+    date: Optional[Date] = Field(None, description="Data da despesa")
+    description: Optional[str] = Field(None, max_length=500, description="Descrição opcional")
+
+    @field_validator("date")
+    def date_not_in_future(cls, v):
+        if v and v > Date.today():
+            raise ValueError("A data não pode ser futura")
+        return v
+
+    @field_validator("value")
+    def value_reasonable(cls, v):
+        if v and v > Decimal("1000000"):
+            raise ValueError("Valor muito alto - verifique se está correto")
+        return v
+
+    @field_validator("description")
+    def description_clean(cls, v):
+        if v:
+            v = v.strip()
+            if not v:
+                return None
+        return v
+
+
 class MonthlyIncomeSchema(BaseModel):
     amount: Decimal = Field(..., gt=0, decimal_places=2, description="Valor da renda mensal")
     date: Date = Field(..., description="Data real da renda")

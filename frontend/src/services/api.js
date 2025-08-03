@@ -201,6 +201,14 @@ export const expenseService = {
     const response = await api.get('/expenses/report/monthly/', { params });
     return response.data;
   },
+  bulkDelete: async (ids) => {
+    const response = await api.delete('/expenses/bulk_delete/', { data: { ids } });
+    return response.data;
+  },
+  bulkPatch: async (ids, updateFields) => {
+    const response = await api.patch('/expenses/bulk_update/', { ids, ...updateFields });
+    return response.data;
+  },
 };
 
 // Serviços de renda mensal

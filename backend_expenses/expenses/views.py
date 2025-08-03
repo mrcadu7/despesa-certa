@@ -111,6 +111,71 @@ class ExpenseViewSet(viewsets.ModelViewSet):
 
         return response
 
+    @action(detail=False, methods=["patch"], url_path="bulk_update")
+    def bulk_update(self, request):
+        """
+        Atualiza múltiplas despesas em massa.
+        """
+        ids = request.data.get("ids", [])
+        if not ids or not isinstance(ids, list):
+            return Response(
+                {"error": "ids deve ser uma lista de IDs"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        update_fields = request.data.get("data", {})
+        if not update_fields:
+            return Response(
+                {"error": "Nenhum campo para atualizar"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        queryset = self.get_queryset().filter(id__in=ids)
+        ids_set = set(ids)
+        queryset_ids_set = set(queryset.values_list("id", flat=True))
+        if ids_set != queryset_ids_set:
+            return Response(
+                {"error": "Você só pode editar suas próprias despesas."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        updated_objs = []
+        errors = {}
+        for obj in queryset:
+            serializer = self.get_serializer(obj, data=update_fields, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                updated_objs.append(serializer.data)
+            else:
+                errors[obj.id] = serializer.errors
+
+        result = {"updated_count": len(updated_objs), "updated": updated_objs, "ids": ids}
+        if errors:
+            result["errors"] = errors
+        return Response(result)
+
+    @action(detail=False, methods=["delete"], url_path="bulk_delete")
+    def bulk_delete(self, request):
+        """
+        Exclui múltiplas despesas em massa.
+        """
+        ids = request.data.get("ids", [])
+        if not ids or not isinstance(ids, list):
+            return Response(
+                {"error": "ids deve ser uma lista de IDs"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        queryset = self.get_queryset().filter(id__in=ids)
+        ids_set = set(ids)
+        queryset_ids_set = set(queryset.values_list("id", flat=True))
+        if ids_set != queryset_ids_set:
+            return Response(
+                {"error": "Você só pode excluir suas próprias despesas."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        deleted = queryset.count()
+        queryset.delete()
+        return Response({"deleted_count": deleted, "ids": ids})
+
 
 class ExportExpensesCSVView(APIView):
     permission_classes = [permissions.IsAuthenticated]

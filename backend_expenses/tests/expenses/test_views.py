@@ -145,3 +145,74 @@ def test_create_expense_unauthenticated():
     }
     response = client.post("/api/expenses/", data, format="json")
     assert response.status_code in (401, 403)
+
+
+@pytest.mark.django_db
+def test_bulk_patch_expenses_owner():
+    user = get_user_model().objects.create_user(username="bulkpatch", password="123")
+    client = APIClient()
+    client.force_authenticate(user=user)
+    exp1 = Expense.objects.create(
+        user=user, value=10, category="alimentacao", date=date.today(), description="A"
+    )
+    exp2 = Expense.objects.create(
+        user=user, value=20, category="transporte", date=date.today(), description="B"
+    )
+    ids = [exp1.id, exp2.id]
+    patch_data = {"category": "moradia", "description": "Editado em massa"}
+    response = client.patch(
+        "/api/expenses/bulk_update/", {"ids": ids, "data": patch_data}, format="json"
+    )
+    assert response.status_code == 200
+    exp1.refresh_from_db()
+    exp2.refresh_from_db()
+    assert exp1.category == "moradia"
+    assert exp2.category == "moradia"
+    assert exp1.description == "Editado em massa"
+    assert exp2.description == "Editado em massa"
+
+
+@pytest.mark.django_db
+def test_bulk_patch_expenses_not_owner():
+    owner = get_user_model().objects.create_user(username="bulkowner", password="123")
+    other = get_user_model().objects.create_user(username="bulkother", password="123")
+    exp1 = Expense.objects.create(
+        user=owner, value=10, category="alimentacao", date=date.today(), description="A"
+    )
+    exp2 = Expense.objects.create(
+        user=owner, value=20, category="transporte", date=date.today(), description="B"
+    )
+    ids = [exp1.id, exp2.id]
+    client = APIClient()
+    client.force_authenticate(user=other)
+    patch_data = {"category": "moradia"}
+    response = client.patch(
+        "/api/expenses/bulk_update/", {"ids": ids, "data": patch_data}, format="json"
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_bulk_delete_expenses_owner():
+    user = get_user_model().objects.create_user(username="bulkdel", password="123")
+    client = APIClient()
+    client.force_authenticate(user=user)
+    exp1 = Expense.objects.create(user=user, value=10, category="alimentacao", date=date.today())
+    exp2 = Expense.objects.create(user=user, value=20, category="transporte", date=date.today())
+    ids = [exp1.id, exp2.id]
+    response = client.delete("/api/expenses/bulk_delete/", {"ids": ids}, format="json")
+    assert response.status_code == 200
+    assert not Expense.objects.filter(id__in=ids).exists()
+
+
+@pytest.mark.django_db
+def test_bulk_delete_expenses_not_owner():
+    owner = get_user_model().objects.create_user(username="bulkdelowner", password="123")
+    other = get_user_model().objects.create_user(username="bulkdelother", password="123")
+    exp1 = Expense.objects.create(user=owner, value=10, category="alimentacao", date=date.today())
+    exp2 = Expense.objects.create(user=owner, value=20, category="transporte", date=date.today())
+    ids = [exp1.id, exp2.id]
+    client = APIClient()
+    client.force_authenticate(user=other)
+    response = client.delete("/api/expenses/bulk_delete/", {"ids": ids}, format="json")
+    assert response.status_code == 403
