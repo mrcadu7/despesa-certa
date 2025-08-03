@@ -37,7 +37,7 @@ def test_expense_serializer_invalid_category():
 
 
 @pytest.mark.django_db
-def test_expense_serializer_invalid_date():
+def test_expense_serializer_future_date_allowed():
     user = get_user_model().objects.create_user(username="test3", password="123")
     data = {
         "user": user.id,
@@ -47,8 +47,7 @@ def test_expense_serializer_invalid_date():
         "description": "Futuro",
     }
     serializer = ExpenseSerializer(data=data)
-    assert not serializer.is_valid()
-    assert "validation" in serializer.errors
+    assert serializer.is_valid(), serializer.errors
 
 
 @pytest.mark.django_db

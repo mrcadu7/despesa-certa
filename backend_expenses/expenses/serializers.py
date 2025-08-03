@@ -3,7 +3,12 @@ from rest_framework import serializers
 from django.db.models import Sum
 
 from .models import Expense, FinancialAlert, MonthlyIncome
-from .schemas import ExpensePartialSchema, ExpenseSchema, MonthlyIncomeSchema
+from .schemas import (
+    ExpensePartialSchema,
+    ExpenseSchema,
+    MonthlyIncomePartialSchema,
+    MonthlyIncomeSchema,
+)
 
 
 class ExpenseSerializer(serializers.ModelSerializer):
@@ -60,8 +65,13 @@ class MonthlyIncomeSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "user", "created", "modified"]
 
     def validate(self, data):
+        input_data = {**getattr(self, "initial_data", {}), **data}
+        if self.partial:
+            schema = MonthlyIncomePartialSchema
+        else:
+            schema = MonthlyIncomeSchema
         try:
-            MonthlyIncomeSchema(**{**self.initial_data, **data})
+            schema(**input_data)
         except Exception as e:
             raise serializers.ValidationError({"validation": str(e)})
         return data

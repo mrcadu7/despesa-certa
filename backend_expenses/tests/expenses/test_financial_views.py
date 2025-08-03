@@ -128,3 +128,52 @@ class MonthlyIncomeValidationTestCase(APITestCase):
 
         response = self.client.post(url, data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_too_high_amount(self):
+        """Testa validação de valor muito alto."""
+        url = reverse("monthlyincome-list")
+        data = {"date": "2025-08-01", "amount": "10000001.00"}
+        response = self.client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_zero_amount(self):
+        """Testa validação de valor zero."""
+        url = reverse("monthlyincome-list")
+        data = {"date": "2025-08-01", "amount": "0.00"}
+        response = self.client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_future_date_allowed(self):
+        """Testa que datas futuras são permitidas na criação."""
+        url = reverse("monthlyincome-list")
+        future_date = (datetime.date.today() + datetime.timedelta(days=10)).isoformat()
+        data = {"date": future_date, "amount": "1000.00"}
+        response = self.client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+    def test_patch_invalid_amount(self):
+        """Testa PATCH parcial com valor inválido."""
+        url = reverse("monthlyincome-list")
+        # Cria renda válida
+        data = {"date": "2025-08-01", "amount": "1000.00"}
+        response = self.client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        income_id = response.data["id"]
+        # PATCH valor inválido
+        patch_url = reverse("monthlyincome-detail", args=[income_id])
+        patch_data = {"amount": "-500.00"}
+        patch_response = self.client.patch(patch_url, patch_data, format="json")
+        assert patch_response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_patch_future_date_allowed(self):
+        """Testa PATCH parcial permitindo data futura."""
+        url = reverse("monthlyincome-list")
+        data = {"date": "2025-08-01", "amount": "1000.00"}
+        response = self.client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        income_id = response.data["id"]
+        patch_url = reverse("monthlyincome-detail", args=[income_id])
+        future_date = (datetime.date.today() + datetime.timedelta(days=10)).isoformat()
+        patch_data = {"date": future_date}
+        patch_response = self.client.patch(patch_url, patch_data, format="json")
+        assert patch_response.status_code == status.HTTP_200_OK

@@ -41,12 +41,6 @@ class ExpenseSchema(BaseModel):
     date: Date = Field(..., description="Data da despesa")
     description: Optional[str] = Field(None, max_length=500, description="Descrição opcional")
 
-    @field_validator("date")
-    def date_not_in_future(cls, v):
-        if v > Date.today():
-            raise ValueError("A data não pode ser futura")
-        return v
-
     @field_validator("value")
     def value_reasonable(cls, v):
         if v > Decimal("1000000"):
@@ -69,12 +63,6 @@ class ExpensePartialSchema(BaseModel):
     category: Optional[CategoryType] = Field(None, description="Categoria da despesa")
     date: Optional[Date] = Field(None, description="Data da despesa")
     description: Optional[str] = Field(None, max_length=500, description="Descrição opcional")
-
-    @field_validator("date")
-    def date_not_in_future(cls, v):
-        if v and v > Date.today():
-            raise ValueError("A data não pode ser futura")
-        return v
 
     @field_validator("value")
     def value_reasonable(cls, v):
@@ -101,6 +89,22 @@ class MonthlyIncomeSchema(BaseModel):
             raise ValueError("Valor muito alto - verifique se está correto")
         if v < Decimal("0.01"):
             raise ValueError("Valor deve ser maior que zero")
+        return v
+
+
+class MonthlyIncomePartialSchema(BaseModel):
+    amount: Optional[Decimal] = Field(
+        None, gt=0, decimal_places=2, description="Valor da renda mensal"
+    )
+    date: Optional[Date] = Field(None, description="Data real da renda")
+
+    @field_validator("amount")
+    def amount_reasonable(cls, v):
+        if v is not None:
+            if v > Decimal("10000000"):  # 10 milhões
+                raise ValueError("Valor muito alto - verifique se está correto")
+            if v < Decimal("0.01"):
+                raise ValueError("Valor deve ser maior que zero")
         return v
 
 
