@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from django.db.models import Sum
+
 from .models import Expense, FinancialAlert, MonthlyIncome
 from .schemas import ExpenseSchema, MonthlyIncomeSchema
 
@@ -34,41 +36,41 @@ class ExpenseSerializer(serializers.ModelSerializer):
 class MonthlyIncomeSerializer(serializers.ModelSerializer):
     """Serializer para renda mensal."""
 
+    total_month_income = serializers.SerializerMethodField()
+
     class Meta:
         model = MonthlyIncome
         fields = [
             "id",
             "user",
-            "month",
+            "date",
             "amount",
+            "description",
+            "income_type",
+            "is_recurring",
             "created",
             "modified",
+            "total_month_income",
         ]
         read_only_fields = ["id", "user", "created", "modified"]
 
     def validate(self, data):
         try:
-            MonthlyIncomeSchema(**data)
+            MonthlyIncomeSchema(**{**self.initial_data, **data})
         except Exception as e:
             raise serializers.ValidationError({"validation": str(e)})
-
-        if "month" in data:
-            data["month"] = data["month"].replace(day=1)
-
-        if self.instance is None:
-            user = self.context["request"].user
-            month = data.get("month")
-            if (
-                month
-                and MonthlyIncome.objects.filter(
-                    user=user, month__year=month.year, month__month=month.month
-                ).exists()
-            ):
-                raise serializers.ValidationError(
-                    {"month": "Já existe uma renda registrada para este mês."}
-                )
-
         return data
+
+    def get_total_month_income(self, obj):
+        user = obj.user
+        date = obj.date
+        total = (
+            MonthlyIncome.objects.filter(
+                user=user, date__year=date.year, date__month=date.month
+            ).aggregate(total=Sum("amount"))["total"]
+            or 0
+        )
+        return total
 
 
 class FinancialAlertSerializer(serializers.ModelSerializer):

@@ -22,11 +22,11 @@ class ExpenseHistoryAdmin(admin.ModelAdmin):
 
 @admin.register(MonthlyIncome)
 class MonthlyIncomeAdmin(admin.ModelAdmin):
-    list_display = ("user", "month", "amount", "created")
-    list_filter = ("month", "user")
+    list_display = ("user", "date", "amount", "created")
+    list_filter = ("date", "user")
     search_fields = ("user__username",)
-    date_hierarchy = "month"
-    ordering = ("-month",)
+    date_hierarchy = "date"
+    ordering = ("-date",)
 
 
 @admin.register(FinancialAlert)

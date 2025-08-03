@@ -31,7 +31,7 @@ class FinancialViewsTestCase(APITestCase):
     def test_monthly_income_create(self):
         """Testa criação de renda mensal."""
         url = reverse("monthlyincome-list")
-        data = {"month": "2025-08-01", "amount": "5000.00"}
+        data = {"date": "2025-08-01", "amount": "5000.00"}
 
         response = self.client.post(url, data, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -41,7 +41,7 @@ class FinancialViewsTestCase(APITestCase):
 
     def test_monthly_income_list(self):
         """Testa listagem de rendas mensais."""
-        MonthlyIncome.objects.create(user=self.user, month=self.month, amount=Decimal("5000.00"))
+        MonthlyIncome.objects.create(user=self.user, date=self.month, amount=Decimal("5000.00"))
 
         url = reverse("monthlyincome-list")
         response = self.client.get(url)
@@ -67,7 +67,7 @@ class FinancialViewsTestCase(APITestCase):
 
     def test_financial_summary_view(self):
         """Testa a view de resumo financeiro."""
-        MonthlyIncome.objects.create(user=self.user, month=self.month, amount=Decimal("5000.00"))
+        MonthlyIncome.objects.create(user=self.user, date=self.month, amount=Decimal("5000.00"))
 
         url = reverse("financial-summary")
         response = self.client.get(url)
@@ -90,7 +90,7 @@ class FinancialViewsTestCase(APITestCase):
 
     def test_generate_alerts_view(self):
         """Testa a view de geração de alertas."""
-        MonthlyIncome.objects.create(user=self.user, month=self.month, amount=Decimal("5000.00"))
+        MonthlyIncome.objects.create(user=self.user, date=self.month, amount=Decimal("5000.00"))
 
         url = reverse("generate-alerts")
         data = {"month": "2025-08"}
@@ -126,17 +126,5 @@ class MonthlyIncomeValidationTestCase(APITestCase):
         url = reverse("monthlyincome-list")
         data = {"month": "2025-08-01", "amount": "-1000.00"}
 
-        response = self.client.post(url, data, format="json")
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-    def test_duplicate_month(self):
-        """Testa criação de renda duplicada para o mesmo mês."""
-        url = reverse("monthlyincome-list")
-        data = {"month": "2025-01-01", "amount": "5000.00"}
-
-        response = self.client.post(url, data, format="json")
-        assert response.status_code == status.HTTP_201_CREATED
-
-        data["amount"] = "6000.00"
         response = self.client.post(url, data, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST

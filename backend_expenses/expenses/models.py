@@ -39,15 +39,17 @@ class MonthlyIncome(TimeStampedModel, models.Model):
     user = models.ForeignKey(
         get_user_model(), on_delete=models.CASCADE, related_name="monthly_incomes"
     )
-    month = models.DateField()  # Primeiro dia do mês
+    date = models.DateField()  # Data real da renda
     amount = models.DecimalField(max_digits=12, decimal_places=2)
+    description = models.TextField(blank=True)
+    income_type = models.CharField(max_length=50, blank=True)
+    is_recurring = models.BooleanField(default=False)
 
     class Meta:
-        unique_together = ["user", "month"]
-        ordering = ["-month"]
+        ordering = ["-date"]
 
     def __str__(self):
-        return f"{self.user.username} - {self.month.strftime('%m/%Y')} - R$ {self.amount}"
+        return f"{self.user.username} - {self.date.strftime('%d/%m/%Y')} - R$ {self.amount}"
 
 
 class FinancialAlert(models.Model):

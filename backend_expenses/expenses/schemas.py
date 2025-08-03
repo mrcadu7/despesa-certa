@@ -64,7 +64,7 @@ class ExpenseSchema(BaseModel):
 
 class MonthlyIncomeSchema(BaseModel):
     amount: Decimal = Field(..., gt=0, decimal_places=2, description="Valor da renda mensal")
-    month: Date = Field(..., description="Mês de referência (primeiro dia do mês)")
+    date: Date = Field(..., description="Data real da renda")
 
     @field_validator("amount")
     def amount_reasonable(cls, v):
@@ -73,11 +73,6 @@ class MonthlyIncomeSchema(BaseModel):
         if v < Decimal("0.01"):
             raise ValueError("Valor deve ser maior que zero")
         return v
-
-    @field_validator("month")
-    def month_first_day(cls, v):
-        # Garantir que seja sempre o primeiro dia do mês
-        return v.replace(day=1)
 
 
 class FinancialAnalysisSchema(BaseModel):

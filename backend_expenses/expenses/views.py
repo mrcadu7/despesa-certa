@@ -13,7 +13,7 @@ from django.db.models.functions import TruncMonth
 from django.http import HttpResponse
 from django.utils import timezone
 
-from .filters import ExpenseFilter
+from .filters import ExpenseFilter, MonthlyIncomeFilter
 from .models import Expense, FinancialAlert, MonthlyIncome
 from .serializers import (
     ExpenseSerializer,
@@ -182,6 +182,11 @@ class MonthlyIncomeViewSet(viewsets.ModelViewSet):
 
     serializer_class = MonthlyIncomeSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = MonthlyIncomeFilter
+    search_fields = ["description", "income_type"]
+    ordering_fields = ["date", "amount", "income_type"]
+    ordering = ["-date"]
 
     def get_queryset(self):
         return MonthlyIncome.objects.filter(user=self.request.user)
@@ -239,6 +244,56 @@ class MonthlyIncomeViewSet(viewsets.ModelViewSet):
             )
 
         return response
+
+    @action(detail=False, methods=["patch"], url_path="bulk_update")
+    def bulk_update(self, request):
+        """
+        Atualiza múltiplas rendas em massa.
+        """
+        ids = request.data.get("ids", [])
+        if not ids or not isinstance(ids, list):
+            return Response(
+                {"error": "ids deve ser uma lista de IDs"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        update_fields = {k: v for k, v in request.data.items() if k != "ids"}
+        if not update_fields:
+            return Response(
+                {"error": "Nenhum campo para atualizar"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        queryset = self.get_queryset().filter(id__in=ids)
+        updated_objs = []
+        errors = {}
+        for obj in queryset:
+            serializer = self.get_serializer(obj, data=update_fields, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                updated_objs.append(serializer.data)
+            else:
+                errors[obj.id] = serializer.errors
+
+        result = {"updated_count": len(updated_objs), "updated": updated_objs, "ids": ids}
+        if errors:
+            result["errors"] = errors
+        return Response(result)
+
+    @action(detail=False, methods=["delete"], url_path="bulk_delete")
+    def bulk_delete(self, request):
+        """
+        Exclui múltiplas rendas em massa.
+        Espera: { "ids": [1,2,3] }
+        """
+        ids = request.data.get("ids", [])
+        if not ids or not isinstance(ids, list):
+            return Response(
+                {"error": "ids deve ser uma lista de IDs"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        queryset = self.get_queryset().filter(id__in=ids)
+        deleted = queryset.count()
+        queryset.delete()
+        return Response({"deleted_count": deleted, "ids": ids})
 
 
 class FinancialAlertViewSet(viewsets.ReadOnlyModelViewSet):

@@ -66,7 +66,7 @@ const IncomeForm = ({ open, onClose, income = null, onSuccess }) => {
     description: '',
     value: '',
     income_type: '',
-    date: new Date(),
+    date: '',
     is_recurring: false,
   });
   const [loading, setLoading] = useState(false);
@@ -74,11 +74,17 @@ const IncomeForm = ({ open, onClose, income = null, onSuccess }) => {
 
   useEffect(() => {
     if (income) {
+      // Corrige bug de -1 dia: converte 'YYYY-MM-DD' para Date local
+      let dateValue = null;
+      if (income.date) {
+        const [year, month, day] = income.date.split('-');
+        dateValue = new Date(Number(year), Number(month) - 1, Number(day));
+      }
       setFormData({
         description: income.description,
-        value: income.value,
+        value: income.amount,
         income_type: income.income_type,
-        date: new Date(income.date),
+        date: dateValue, // sempre Date ou null
         is_recurring: income.is_recurring,
       });
     } else {
@@ -86,7 +92,7 @@ const IncomeForm = ({ open, onClose, income = null, onSuccess }) => {
         description: '',
         value: '',
         income_type: '',
-        date: new Date(),
+        date: null,
         is_recurring: false,
       });
     }
@@ -98,10 +104,19 @@ const IncomeForm = ({ open, onClose, income = null, onSuccess }) => {
       setLoading(true);
       setError(null);
 
+      let dateStr = null;
+      if (formData.date instanceof Date && !isNaN(formData.date)) {
+        const year = formData.date.getFullYear();
+        const month = String(formData.date.getMonth() + 1).padStart(2, '0');
+        const day = String(formData.date.getDate()).padStart(2, '0');
+        dateStr = `${year}-${month}-${day}`;
+      }
       const data = {
-        ...formData,
-        value: parseFloat(formData.value),
-        date: formData.date.toISOString().split('T')[0],
+        description: formData.description,
+        amount: parseFloat(formData.value),
+        income_type: formData.income_type,
+        date: dateStr,
+        is_recurring: formData.is_recurring,
       };
 
       if (income) {
@@ -175,7 +190,9 @@ const IncomeForm = ({ open, onClose, income = null, onSuccess }) => {
                 <DatePicker
                   label="Data"
                   value={formData.date}
-                  onChange={(newValue) => setFormData({ ...formData, date: newValue })}
+                  onChange={(newValue) => {
+                    setFormData({ ...formData, date: newValue });
+                  }}
                   renderInput={(params) => <TextField {...params} fullWidth />}
                 />
               </LocalizationProvider>
@@ -208,6 +225,14 @@ const IncomeForm = ({ open, onClose, income = null, onSuccess }) => {
 };
 
 const Income = () => {
+  // Seleção em massa
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkForm, setBulkForm] = useState({
+    income_type: '',
+    date: null,
+    is_recurring: ''
+  });
   const navigate = useNavigate();
   const { monthlyIncomes, setMonthlyIncomes, isLoading, setLoading } = useAppStore();
   
@@ -224,6 +249,7 @@ const Income = () => {
     income_type: '',
     date_start: null,
     date_end: null,
+    is_recurring: '',
   });
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -234,9 +260,9 @@ const Income = () => {
   const [menuIncome, setMenuIncome] = useState(null);
 
   useEffect(() => {
-    console.log('Income component mounted, loading income...');
+    // Carrega ao montar ou ao mudar paginação
     loadIncome();
-  }, [page, rowsPerPage, filters]);
+  }, [page, rowsPerPage]);
 
   console.log('Income component render:', { monthlyIncomes, isLoading, error });
 
@@ -264,6 +290,18 @@ const Income = () => {
       }
       if (filters.date_end) {
         params.date_end = filters.date_end.toISOString().split('T')[0];
+      }
+      // income_type: só envia se não vazio
+      if (filters.income_type !== '') {
+        params.income_type = filters.income_type;
+      } else {
+        delete params.income_type;
+      }
+      // is_recurring: só envia se não vazio, e como string 'true'/'false'
+      if (filters.is_recurring !== '') {
+        params.is_recurring = filters.is_recurring === 'true' || filters.is_recurring === true ? 'true' : 'false';
+      } else {
+        delete params.is_recurring;
       }
 
       console.log('Loading income with params:', params);
@@ -406,12 +444,14 @@ const Income = () => {
                 {formatCurrency(
                   monthlyIncomes
                     .filter(item => {
-                      const itemDate = new Date(item.date);
+                      // item.date pode ser string ou Date
+                      let itemDate = item.date instanceof Date ? item.date : new Date(item.date);
                       const now = new Date();
-                      return itemDate.getMonth() === now.getMonth() && 
-                             itemDate.getFullYear() === now.getFullYear();
+                      // Usar getUTCMonth/getUTCFullYear para evitar bug de timezone
+                      return itemDate.getUTCMonth() === now.getUTCMonth() && 
+                             itemDate.getUTCFullYear() === now.getUTCFullYear();
                     })
-                    .reduce((sum, item) => sum + parseFloat(item.value), 0)
+                    .reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
                 )}
               </Typography>
             </CardContent>
@@ -425,10 +465,10 @@ const Income = () => {
               </Typography>
               <Typography variant="h4">
                 {monthlyIncomes.filter(item => {
-                  const itemDate = new Date(item.date);
+                  let itemDate = item.date instanceof Date ? item.date : new Date(item.date);
                   const now = new Date();
-                  return itemDate.getMonth() === now.getMonth() && 
-                         itemDate.getFullYear() === now.getFullYear();
+                  return itemDate.getUTCMonth() === now.getUTCMonth() && 
+                         itemDate.getUTCFullYear() === now.getUTCFullYear();
                 }).length}
               </Typography>
             </CardContent>
@@ -441,7 +481,11 @@ const Income = () => {
                 Rendas Recorrentes
               </Typography>
               <Typography variant="h4">
-                {monthlyIncomes.filter(item => item.is_recurring).length}
+                {monthlyIncomes.filter(item => {
+                  let itemDate = item.date instanceof Date ? item.date : new Date(item.date);
+                  const now = new Date();
+                  return item.is_recurring && itemDate.getUTCMonth() === now.getUTCMonth() && itemDate.getUTCFullYear() === now.getUTCFullYear();
+                }).length}
               </Typography>
             </CardContent>
           </Card>
@@ -454,10 +498,9 @@ const Income = () => {
           <Typography variant="h6" gutterBottom>
             Filtros
           </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={3}>
+          <Grid container spacing={2} alignItems="center" wrap="nowrap">
+            <Grid item sx={{ flexGrow: 1 }}>
               <TextField
-                fullWidth
                 label="Buscar"
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
@@ -467,44 +510,84 @@ const Income = () => {
                       <Search />
                     </InputAdornment>
                   ),
+                  sx: { fontSize: 18, height: 52 }
                 }}
+                InputLabelProps={{ sx: { fontSize: 18 } }}
+                size="medium"
+                fullWidth
+                sx={{ fontSize: 18, height: 52 }}
               />
             </Grid>
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>Tipo de Renda</InputLabel>
+            <Grid item sx={{ flexGrow: 1 }}>
+              <FormControl fullWidth size="medium" sx={{ height: 52 }}>
+                <InputLabel sx={{ fontSize: 18 }}>Tipo de Renda</InputLabel>
                 <Select
                   value={filters.income_type}
                   onChange={(e) => setFilters({ ...filters, income_type: e.target.value })}
+                  label="Tipo de Renda"
+                  sx={{ fontSize: 18, height: 52 }}
                 >
                   <MenuItem value="">Todos</MenuItem>
                   {INCOME_TYPES.map((type) => (
-                    <MenuItem key={type.value} value={type.value}>
+                    <MenuItem key={type.value} value={type.value} sx={{ fontSize: 18 }}>
                       {type.label}
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid item sx={{ flexGrow: 1 }}>
+              <FormControl fullWidth size="medium" sx={{ height: 52 }}>
+                <InputLabel sx={{ fontSize: 18 }}>Recorrente</InputLabel>
+                <Select
+                  value={filters.is_recurring}
+                  onChange={(e) => setFilters({ ...filters, is_recurring: e.target.value })}
+                  label="Recorrente"
+                  sx={{ fontSize: 18, height: 52 }}
+                >
+                  <MenuItem value="">Todos</MenuItem>
+                  <MenuItem value="true" sx={{ fontSize: 18 }}>Sim</MenuItem>
+                  <MenuItem value="false" sx={{ fontSize: 18 }}>Não</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item sx={{ flexGrow: 1 }}>
               <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
                 <DatePicker
                   label="Data Início"
                   value={filters.date_start}
-                  onChange={(newValue) => setFilters({ ...filters, date_start: newValue })}
-                  renderInput={(params) => <TextField {...params} fullWidth />}
+                  onChange={(newValue) => {
+                    setFilters({ ...filters, date_start: newValue });
+                  }}
+                  renderInput={(params) => <TextField {...params} size="medium" fullWidth sx={{ fontSize: 18, height: 52 }} InputLabelProps={{ sx: { fontSize: 18 } }} />}
                 />
               </LocalizationProvider>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid item sx={{ flexGrow: 1 }}>
               <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
                 <DatePicker
                   label="Data Fim"
                   value={filters.date_end}
-                  onChange={(newValue) => setFilters({ ...filters, date_end: newValue })}
-                  renderInput={(params) => <TextField {...params} fullWidth />}
+                  onChange={(newValue) => {
+                    setFilters({ ...filters, date_end: newValue });
+                  }}
+                  renderInput={(params) => <TextField {...params} size="medium" fullWidth sx={{ fontSize: 18, height: 52 }} InputLabelProps={{ sx: { fontSize: 18 } }} />}
                 />
               </LocalizationProvider>
+            </Grid>
+            <Grid item sx={{ minWidth: 160, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<FilterList />}
+                sx={{ height: 52, minWidth: 120, fontSize: 18 }}
+                onClick={() => {
+                  setPage(0);
+                  loadIncome();
+                }}
+              >
+                Filtrar
+              </Button>
             </Grid>
           </Grid>
           <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
@@ -519,12 +602,49 @@ const Income = () => {
         </CardContent>
       </Card>
 
-      {/* Tabela */}
+      {/* Tabela com seleção em massa */}
       <Card>
+        <Box display="flex" justifyContent="space-between" alignItems="center" px={2} py={1}>
+          <Button
+            variant="outlined"
+            disabled={selectedIds.length === 0}
+            onClick={() => setBulkDialogOpen(true)}
+          >
+            Ações em Massa ({selectedIds.length})
+          </Button>
+          <Button
+            variant="outlined"
+            color="error"
+            disabled={selectedIds.length === 0}
+            onClick={async () => {
+              if (window.confirm(`Excluir ${selectedIds.length} rendas selecionadas? Esta ação não pode ser desfeita.`)) {
+                const result = await incomeService.bulkDelete(selectedIds);
+                setSelectedIds([]);
+                loadIncome();
+                setSuccess(`Rendas excluídas em massa: ${result.deleted_count || 0}`);
+              }
+            }}
+          >
+            Excluir Selecionados
+          </Button>
+        </Box>
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow>
+                <TableCell padding="checkbox">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.length === monthlyIncomes.length && monthlyIncomes.length > 0}
+                    onChange={e => {
+                      if (e.target.checked) {
+                        setSelectedIds(monthlyIncomes.map(i => i.id));
+                      } else {
+                        setSelectedIds([]);
+                      }
+                    }}
+                  />
+                </TableCell>
                 <TableCell>Descrição</TableCell>
                 <TableCell>Valor</TableCell>
                 <TableCell>Tipo</TableCell>
@@ -536,6 +656,19 @@ const Income = () => {
             <TableBody>
               {monthlyIncomes.map((incomeItem) => (
                 <TableRow key={incomeItem.id}>
+                  <TableCell padding="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(incomeItem.id)}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setSelectedIds([...selectedIds, incomeItem.id]);
+                        } else {
+                          setSelectedIds(selectedIds.filter(id => id !== incomeItem.id));
+                        }
+                      }}
+                    />
+                  </TableCell>
                   <TableCell>
                     <Box display="flex" alignItems="center" gap={1}>
                       <AttachMoney color="success" />
@@ -544,7 +677,7 @@ const Income = () => {
                   </TableCell>
                   <TableCell>
                     <Typography variant="h6" color="success.main">
-                      {formatCurrency(incomeItem.value)}
+                      {formatCurrency(isNaN(Number(incomeItem.amount)) ? 0 : Number(incomeItem.amount))}
                     </Typography>
                   </TableCell>
                   <TableCell>
@@ -555,7 +688,10 @@ const Income = () => {
                     />
                   </TableCell>
                   <TableCell>
-                    {new Date(incomeItem.date).toLocaleDateString('pt-BR')}
+                    {incomeItem.date ? (() => {
+                      const [year, month, day] = incomeItem.date.split('-');
+                      return `${day}/${month}/${year}`;
+                    })() : ''}
                   </TableCell>
                   <TableCell>
                     {incomeItem.is_recurring ? (
@@ -594,6 +730,77 @@ const Income = () => {
           }
         />
       </Card>
+      {/* Modal de edição em massa */}
+      <Dialog open={bulkDialogOpen} onClose={() => setBulkDialogOpen(false)}>
+        <DialogTitle>Edição em Massa</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Tipo de Renda</InputLabel>
+                <Select
+                  value={bulkForm.income_type}
+                  onChange={e => setBulkForm({ ...bulkForm, income_type: e.target.value })}
+                >
+                  {INCOME_TYPES.map((type) => (
+                    <MenuItem key={type.value} value={type.value}>
+                      {type.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
+                <DatePicker
+                  label="Nova Data"
+                  value={bulkForm.date}
+                  onChange={newValue => setBulkForm({ ...bulkForm, date: newValue })}
+                  renderInput={params => <TextField {...params} fullWidth />}
+                />
+              </LocalizationProvider>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Recorrente</InputLabel>
+                <Select
+                  value={bulkForm.is_recurring}
+                  onChange={e => setBulkForm({ ...bulkForm, is_recurring: e.target.value })}
+                >
+                  <MenuItem value={true}>Sim</MenuItem>
+                  <MenuItem value={false}>Não</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBulkDialogOpen(false)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={async () => {
+              // Chamada de API PATCH para atualizar em massa (bulk)
+              const updateData = {};
+              if (bulkForm.income_type) updateData.income_type = bulkForm.income_type;
+              if (bulkForm.date) updateData.date = new Date(bulkForm.date).toISOString().split('T')[0];
+              if (bulkForm.is_recurring !== '') updateData.is_recurring = bulkForm.is_recurring;
+              const result = await incomeService.bulkPatch(selectedIds, updateData);
+              setBulkDialogOpen(false);
+              setSelectedIds([]);
+              setBulkForm({ income_type: '', date: null, is_recurring: '' });
+              loadIncome();
+              setSuccess(`Rendas atualizadas em massa: ${result.updated_count || 0}`);
+              if (result.errors) {
+                setError('Algumas rendas não foram atualizadas. Verifique os detalhes.');
+                console.error('Erros no bulk update:', result.errors);
+              }
+            }}
+            disabled={selectedIds.length === 0}
+          >
+            Salvar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Menu de Ações */}
       <Menu

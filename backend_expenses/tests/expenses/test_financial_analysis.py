@@ -1,8 +1,6 @@
 import datetime
 from decimal import Decimal
 
-import pytest
-
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
@@ -24,7 +22,7 @@ class FinancialAnalysisServiceTestCase(TestCase):
         self.month = datetime.date(2025, 8, 1)
 
         # Criar renda mensal
-        MonthlyIncome.objects.create(user=self.user, month=self.month, amount=Decimal("5000.00"))
+        MonthlyIncome.objects.create(user=self.user, date=self.month, amount=Decimal("5000.00"))
 
         # Criar algumas despesas
         self.expenses = [
@@ -182,23 +180,12 @@ class MonthlyIncomeModelTestCase(TestCase):
     def test_create_monthly_income(self):
         """Testa criação de renda mensal."""
         income = MonthlyIncome.objects.create(
-            user=self.user, month=datetime.date(2025, 8, 1), amount=Decimal("5000.00")
+            user=self.user, date=datetime.date(2025, 8, 1), amount=Decimal("5000.00")
         )
 
         assert income.user == self.user
         assert income.amount == Decimal("5000.00")
-        assert str(income) == f"{self.user.username} - 08/2025 - R$ 5000.00"
-
-    def test_unique_constraint(self):
-        """Testa se a constraint unique_together funciona."""
-        MonthlyIncome.objects.create(
-            user=self.user, month=datetime.date(2025, 8, 1), amount=Decimal("5000.00")
-        )
-
-        with pytest.raises(Exception):
-            MonthlyIncome.objects.create(
-                user=self.user, month=datetime.date(2025, 8, 1), amount=Decimal("6000.00")
-            )
+        assert str(income) == f"{self.user.username} - 01/08/2025 - R$ 5000.00"
 
 
 class FinancialAlertModelTestCase(TestCase):

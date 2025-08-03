@@ -23,7 +23,7 @@ class FinancialAnalysisService:
         """Obtém a renda mensal do usuário para o mês especificado."""
         try:
             income = MonthlyIncome.objects.get(
-                user=self.user, month__year=self.month.year, month__month=self.month.month
+                user=self.user, date__year=self.month.year, date__month=self.month.month
             )
             return income.amount
         except MonthlyIncome.DoesNotExist:

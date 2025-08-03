@@ -205,6 +205,14 @@ export const expenseService = {
 
 // Serviços de renda mensal
 export const incomeService = {
+  bulkDelete: async (ids) => {
+    const response = await api.delete('/monthly-income/bulk_delete/', { data: { ids } });
+    return response.data;
+  },
+  bulkPatch: async (ids, updateFields) => {
+    const response = await api.patch('/monthly-income/bulk_update/', { ids, ...updateFields });
+    return response.data;
+  },
   getAll: async (params = {}) => {
     const response = await api.get('/monthly-income/', { params });
     return response.data;
@@ -217,6 +225,11 @@ export const incomeService = {
   
   update: async (id, income) => {
     const response = await api.put(`/monthly-income/${id}/`, income);
+    return response.data;
+  },
+  
+  patch: async (id, income) => {
+    const response = await api.patch(`/monthly-income/${id}/`, income);
     return response.data;
   },
   
