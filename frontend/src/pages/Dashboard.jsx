@@ -14,7 +14,15 @@ import {
   ListItemText,
   ListItemIcon,
   Fab,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
+import ExpenseForm from './ExpenseForm';
+import IncomeForm from './IncomeForm';
 import {
   TrendingUp,
   TrendingDown,
@@ -34,12 +42,21 @@ import { useAppStore } from '../store';
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 const Dashboard = () => {
+
   const navigate = useNavigate();
   const { expenses, setExpenses, setLoading, isLoading } = useAppStore();
-  
+
   const [financialSummary, setFinancialSummary] = useState(null);
   const [recentExpenses, setRecentExpenses] = useState([]);
   const [error, setError] = useState(null);
+
+  // Estado para menu do FAB
+  const [fabAnchorEl, setFabAnchorEl] = useState(null);
+  const fabMenuOpen = Boolean(fabAnchorEl);
+
+  // Estado para modais de formulário
+  const [openExpenseModal, setOpenExpenseModal] = useState(false);
+  const [openIncomeModal, setOpenIncomeModal] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -307,15 +324,26 @@ const Dashboard = () => {
                 {recentExpenses.length > 0 ? (
                   <List>
                     {recentExpenses.map((expense) => (
-                      <ListItem key={expense.id} divider>
-                        <ListItemText
-                          primary={expense.description}
-                          secondary={`${expense.category} • ${new Date(expense.date).toLocaleDateString('pt-BR')}`}
-                        />
-                        <Typography variant="h6" color="error">
-                          {formatCurrency(expense.value)}
-                        </Typography>
-                      </ListItem>
+                    <ListItem key={expense.id} divider>
+                      <ListItemText
+                        primary={expense.description}
+                        secondary={`${expense.category} • ${(() => {
+                          if (typeof expense.date === 'string' && expense.date.includes('-')) {
+                            const [year, month, day] = expense.date.split('-');
+                            return `${day}/${month}/${year}`;
+                          } else if (expense.date instanceof Date && !isNaN(expense.date)) {
+                            const year = expense.date.getFullYear();
+                            const month = String(expense.date.getMonth() + 1).padStart(2, '0');
+                            const day = String(expense.date.getDate()).padStart(2, '0');
+                            return `${day}/${month}/${year}`;
+                          }
+                          return '';
+                        })()}`}
+                      />
+                      <Typography variant="h6" color="error">
+                        {formatCurrency(expense.value)}
+                      </Typography>
+                    </ListItem>
                     ))}
                   </List>
                 ) : (
@@ -329,7 +357,7 @@ const Dashboard = () => {
         </Grid>
       )}
 
-      {/* Botão Flutuante para Adicionar Despesa */}
+      {/* Botão Flutuante para Adicionar */}
       <Fab
         color="primary"
         aria-label="add"
@@ -338,10 +366,69 @@ const Dashboard = () => {
           bottom: 16,
           right: 16,
         }}
-        onClick={() => navigate('/expenses/new')}
+        onClick={e => setFabAnchorEl(e.currentTarget)}
       >
         <Add />
       </Fab>
+
+      <Menu
+        anchorEl={fabAnchorEl}
+        open={fabMenuOpen}
+        onClose={() => setFabAnchorEl(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <MenuItem
+          onClick={() => {
+            setFabAnchorEl(null);
+            setOpenExpenseModal(true);
+          }}
+        >
+          Adicionar Despesa
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            setFabAnchorEl(null);
+            setOpenIncomeModal(true);
+          }}
+        >
+          Adicionar Renda
+        </MenuItem>
+      </Menu>
+
+      {/* Modal de Adicionar Despesa */}
+      <Dialog 
+        open={openExpenseModal} 
+        onClose={() => setOpenExpenseModal(false)} 
+        maxWidth="sm" 
+        fullWidth
+        slotProps={{ backdrop: { sx: { backgroundColor: 'rgba(0,0,0,0.5)' } } }}
+      >
+        <DialogTitle>Adicionar Despesa</DialogTitle>
+        <DialogContent>
+          <ExpenseForm 
+            open={openExpenseModal}
+            onClose={() => setOpenExpenseModal(false)}
+            onSuccess={loadDashboardData}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenExpenseModal(false)} color="secondary">Fechar</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal de Adicionar Renda */}
+      <Dialog 
+        open={openIncomeModal} 
+        onClose={() => setOpenIncomeModal(false)} 
+        maxWidth="sm" 
+        fullWidth
+        slotProps={{ backdrop: { sx: { backgroundColor: 'rgba(0,0,0,0.5)' } } }}
+      >
+        <DialogContent>
+          <IncomeForm />
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };

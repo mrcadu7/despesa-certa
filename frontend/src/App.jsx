@@ -17,6 +17,8 @@ import Income from './pages/Income';
 import Reports from './pages/Reports';
 import Profile from './pages/Profile';
 import Auth from './pages/Auth';
+import ExpenseForm from './pages/ExpenseForm';
+import IncomeForm from './pages/IncomeForm';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -79,6 +81,26 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Dashboard />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/expenses/new"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ExpenseForm />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/incomes/new"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <IncomeForm />
                   </Layout>
                 </ProtectedRoute>
               }

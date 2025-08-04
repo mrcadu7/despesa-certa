@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import IncomeForm from './IncomeForm';
 import {
   Box,
   Typography,
@@ -60,169 +61,6 @@ const INCOME_TYPES = [
   { value: 'bonus', label: 'Bônus' },
   { value: 'outros', label: 'Outros' },
 ];
-
-const IncomeForm = ({ open, onClose, income = null, onSuccess }) => {
-  const [formData, setFormData] = useState({
-    description: '',
-    value: '',
-    income_type: '',
-    date: '',
-    is_recurring: false,
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    if (income) {
-      // Corrige bug de -1 dia: converte 'YYYY-MM-DD' para Date local
-      let dateValue = null;
-      if (income.date) {
-        const [year, month, day] = income.date.split('-');
-        dateValue = new Date(Number(year), Number(month) - 1, Number(day));
-      }
-      setFormData({
-        description: income.description,
-        value: income.amount,
-        income_type: income.income_type,
-        date: dateValue, // sempre Date ou null
-        is_recurring: income.is_recurring,
-      });
-    } else {
-      setFormData({
-        description: '',
-        value: '',
-        income_type: '',
-        date: null,
-        is_recurring: false,
-      });
-    }
-  }, [income, open]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      setError(null);
-
-      let dateStr = null;
-      if (formData.date instanceof Date && !isNaN(formData.date)) {
-        const year = formData.date.getFullYear();
-        const month = String(formData.date.getMonth() + 1).padStart(2, '0');
-        const day = String(formData.date.getDate()).padStart(2, '0');
-        dateStr = `${year}-${month}-${day}`;
-      }
-      const data = {
-        description: formData.description,
-        amount: parseFloat(formData.value),
-        income_type: formData.income_type,
-        date: dateStr,
-        is_recurring: formData.is_recurring,
-      };
-
-      if (income) {
-        await incomeService.update(income.id, data);
-      } else {
-        await incomeService.create(data);
-      }
-
-      onSuccess();
-      onClose();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao salvar renda');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <form onSubmit={handleSubmit}>
-        <DialogTitle>
-          {income ? 'Editar Renda' : 'Nova Renda'}
-        </DialogTitle>
-        <DialogContent>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Descrição"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Valor"
-                type="number"
-                value={formData.value}
-                onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                InputProps={{
-                  startAdornment: <InputAdornment position="start">R$</InputAdornment>,
-                }}
-                inputProps={{ step: "0.01", min: "0" }}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth required>
-                <InputLabel>Tipo de Renda</InputLabel>
-                <Select
-                  value={formData.income_type}
-                  onChange={(e) => setFormData({ ...formData, income_type: e.target.value })}
-                >
-                  {INCOME_TYPES.map((type) => (
-                    <MenuItem key={type.value} value={type.value}>
-                      {type.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
-                <DatePicker
-                  label="Data"
-                  value={formData.date}
-                  onChange={(newValue) => {
-                    setFormData({ ...formData, date: newValue });
-                  }}
-                  renderInput={(params) => <TextField {...params} fullWidth />}
-                />
-              </LocalizationProvider>
-            </Grid>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Recorrente</InputLabel>
-                <Select
-                  value={formData.is_recurring}
-                  onChange={(e) => setFormData({ ...formData, is_recurring: e.target.value })}
-                >
-                  <MenuItem value={false}>Não</MenuItem>
-                  <MenuItem value={true}>Sim</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button type="submit" variant="contained" disabled={loading}>
-            {loading ? 'Salvando...' : (income ? 'Salvar' : 'Criar')}
-          </Button>
-        </DialogActions>
-      </form>
-    </Dialog>
-  );
-};
 
 const Income = () => {
   // Seleção em massa
@@ -444,12 +282,19 @@ const Income = () => {
                 {formatCurrency(
                   monthlyIncomes
                     .filter(item => {
-                      // item.date pode ser string ou Date
-                      let itemDate = item.date instanceof Date ? item.date : new Date(item.date);
+                      let year, month;
+                      if (typeof item.date === 'string' && item.date.includes('-')) {
+                        [year, month] = item.date.split('-');
+                        year = Number(year);
+                        month = Number(month) - 1;
+                      } else if (item.date instanceof Date && !isNaN(item.date)) {
+                        year = item.date.getFullYear();
+                        month = item.date.getMonth();
+                      } else {
+                        return false;
+                      }
                       const now = new Date();
-                      // Usar getUTCMonth/getUTCFullYear para evitar bug de timezone
-                      return itemDate.getUTCMonth() === now.getUTCMonth() && 
-                             itemDate.getUTCFullYear() === now.getUTCFullYear();
+                      return month === now.getMonth() && year === now.getFullYear();
                     })
                     .reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
                 )}
@@ -823,15 +668,17 @@ const Income = () => {
       </Menu>
 
       {/* Dialog de Formulário */}
-      <IncomeForm
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        income={selectedIncome}
-        onSuccess={() => {
-          loadIncome();
-          setSuccess(selectedIncome ? 'Renda atualizada com sucesso' : 'Renda criada com sucesso');
-        }}
-      />
+      <Dialog open={formOpen} onClose={() => setFormOpen(false)} maxWidth="sm" fullWidth slotProps={{ backdrop: { sx: { backgroundColor: 'rgba(0,0,0,0.5)' } } }}>
+        <IncomeForm
+          open={formOpen}
+          onClose={() => setFormOpen(false)}
+          income={selectedIncome}
+          onSuccess={() => {
+            loadIncome();
+            setSuccess(selectedIncome ? 'Renda atualizada com sucesso' : 'Renda criada com sucesso');
+          }}
+        />
+      </Dialog>
 
       {/* Dialog de Confirmação de Exclusão */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
