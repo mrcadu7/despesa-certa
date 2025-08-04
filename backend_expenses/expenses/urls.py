@@ -5,6 +5,7 @@ from django.urls import include, path
 from .views import (
     ExpenseViewSet,
     ExportExpensesCSVView,
+    ExportMonthlyIncomeCSVView,
     FinancialAlertViewSet,
     FinancialSummaryView,
     GenerateFinancialAlertsView,
@@ -19,7 +20,8 @@ router.register(r"financial-alerts", FinancialAlertViewSet, basename="financiala
 
 urlpatterns = [
     path("register/", RegisterView.as_view(), name="register"),
-    path("export-csv/", ExportExpensesCSVView.as_view(), name="export-expenses-csv"),
+    path("export-expense-csv/", ExportExpensesCSVView.as_view(), name="export-expenses-csv"),
+    path("export-income-csv/", ExportMonthlyIncomeCSVView.as_view(), name="export-income-csv"),
     path("financial-summary/", FinancialSummaryView.as_view(), name="financial-summary"),
     path("generate-alerts/", GenerateFinancialAlertsView.as_view(), name="generate-alerts"),
     path("", include(router.urls)),

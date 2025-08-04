@@ -189,8 +189,8 @@ export const expenseService = {
     await api.delete(`/expenses/${id}/`);
   },
   
-  export: async (params = {}) => {
-    const response = await api.get('/export-csv/', {
+  expenseExport: async (params = {}) => {
+    const response = await api.get('/export-expense-csv/', {
       params,
       responseType: 'blob',
     });
@@ -245,12 +245,12 @@ export const incomeService = {
     await api.delete(`/monthly-income/${id}/`);
   },
   
-  export: async (params = {}) => {
-    const response = await api.get('/monthly-income/export/', { 
+  incomeExport: async (params = {}) => {
+    const response = await api.get('/export-income-csv/', {
       params,
-      responseType: 'blob'
+      responseType: 'blob',
     });
-    return response.data;
+    return response;
   },
 };
 

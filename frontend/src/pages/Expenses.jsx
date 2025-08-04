@@ -164,10 +164,8 @@ const Expenses = () => {
 
   const handleExport = async () => {
     try {
-      // Precisa garantir que o serviço retorna a resposta completa (com headers)
-      const response = await expenseService.export(filters);
+      const response = await expenseService.expenseExport(filters);
       const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      // Extrai o nome do arquivo do header Content-Disposition
       let filename = 'despesas.xlsx';
       const disposition = response.headers && response.headers['content-disposition'];
       if (disposition) {

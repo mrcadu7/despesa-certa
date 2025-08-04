@@ -1,3 +1,4 @@
+import base64
 import time
 from datetime import date
 
@@ -22,7 +23,7 @@ from .serializers import (
     MonthlyIncomeSerializer,
 )
 from .services import FinancialAnalysisService
-from .tasks import export_expenses_csv
+from .tasks import export_expenses_csv, export_monthly_income_csv
 
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
@@ -156,7 +157,6 @@ class ExportExpensesCSVView(APIView):
 
         O arquivo é gerado de forma assíncrona via Celery e baixado automaticamente.
         """
-        import base64
 
         try:
             result = export_expenses_csv.delay(request.user.id)
@@ -329,6 +329,63 @@ class MonthlyIncomeViewSet(viewsets.ModelViewSet):
         deleted = queryset.count()
         queryset.delete()
         return Response({"deleted_count": deleted, "ids": ids})
+
+
+class ExportMonthlyIncomeCSVView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        """
+        Exporta as rendas mensais do usuário autenticado para um arquivo CSV.
+        """
+
+        try:
+            result = export_monthly_income_csv.delay(request.user.id)
+
+            for _ in range(30):
+                if result.ready():
+                    break
+                time.sleep(0.5)
+
+            if not result.ready():
+                return Response(
+                    {"error": "Timeout na exportação - tente novamente"},
+                    status=status.HTTP_408_REQUEST_TIMEOUT,
+                )
+
+            if not result.successful():
+                error_msg = (
+                    str(result.result) if result.result else "Falha desconhecida na exportação"
+                )
+                return Response(
+                    {"error": f"Falha na exportação: {error_msg}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            task_result = result.get()
+
+            if not task_result or not isinstance(task_result, dict):
+                return Response(
+                    {"error": "Resultado inválido da task de exportação"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            file_content = base64.b64decode(task_result["content"])
+            filename = task_result["filename"]
+
+            response = HttpResponse(
+                file_content,
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+            return response
+
+        except Exception as e:
+            return Response(
+                {"error": f"Erro interno: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class FinancialAlertViewSet(viewsets.ReadOnlyModelViewSet):

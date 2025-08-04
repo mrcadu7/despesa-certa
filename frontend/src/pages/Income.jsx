@@ -172,13 +172,18 @@ const Income = () => {
 
   const handleExport = async () => {
     try {
-      const data = await incomeService.export(filters);
-      // Criar e fazer download do arquivo
-      const blob = new Blob([data], { type: 'text/csv' });
+      const response = await incomeService.incomeExport(filters);
+      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      let filename = 'rendas.xlsx';
+      const disposition = response.headers && response.headers['content-disposition'];
+      if (disposition) {
+        const match = disposition.match(/filename="(.+?)"/);
+        if (match) filename = match[1];
+      }
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'rendas.csv';
+      a.download = filename;
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (err) {
