@@ -164,13 +164,20 @@ const Expenses = () => {
 
   const handleExport = async () => {
     try {
-      const data = await expenseService.export(filters);
-      // Criar e fazer download do arquivo
-      const blob = new Blob([data], { type: 'text/csv' });
+      // Precisa garantir que o serviço retorna a resposta completa (com headers)
+      const response = await expenseService.export(filters);
+      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      // Extrai o nome do arquivo do header Content-Disposition
+      let filename = 'despesas.xlsx';
+      const disposition = response.headers && response.headers['content-disposition'];
+      if (disposition) {
+        const match = disposition.match(/filename="(.+?)"/);
+        if (match) filename = match[1];
+      }
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'despesas.csv';
+      a.download = filename;
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (err) {

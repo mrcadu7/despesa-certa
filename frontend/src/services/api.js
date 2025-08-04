@@ -190,11 +190,11 @@ export const expenseService = {
   },
   
   export: async (params = {}) => {
-    const response = await api.get('/expenses/export/', {
+    const response = await api.get('/export-csv/', {
       params,
       responseType: 'blob',
     });
-    return response.data;
+    return response;
   },
   
   getMonthlyReport: async (params = {}) => {

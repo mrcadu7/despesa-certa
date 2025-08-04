@@ -81,36 +81,6 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         )
         return Response({"total_geral": total_geral, "detalhes": data})
 
-    @action(detail=False, methods=["get"])
-    def export(self, request):
-        """
-        Exporta as despesas do usuário para CSV
-        """
-        import csv
-
-        from django.http import HttpResponse
-
-        queryset = self.get_queryset()
-
-        response = HttpResponse(content_type="text/csv")
-        response["Content-Disposition"] = 'attachment; filename="despesas.csv"'
-
-        writer = csv.writer(response)
-        writer.writerow(["Descrição", "Valor", "Categoria", "Data", "Criado em"])
-
-        for expense in queryset:
-            writer.writerow(
-                [
-                    expense.description,
-                    expense.value,
-                    expense.category,
-                    expense.date.strftime("%d/%m/%Y"),
-                    expense.created.strftime("%d/%m/%Y %H:%M"),
-                ]
-            )
-
-        return response
-
     @action(detail=False, methods=["patch"], url_path="bulk_update")
     def bulk_update(self, request):
         """
