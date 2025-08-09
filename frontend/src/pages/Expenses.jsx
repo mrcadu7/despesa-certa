@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import '../styles/Expenses.css';
 import {
   Box,
   Typography,
@@ -44,6 +45,7 @@ import {
   FileDownload,
   MoreVert,
   Receipt,
+  Warning,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -231,50 +233,42 @@ const Expenses = () => {
   };
 
   return (
-    <Box sx={{ 
-      width: '100%', 
-      height: '100vh',
-      pt: '64px', // Espaço para navbar fixa
-      px: 3, 
-      py: 3,
-      overflow: 'auto'
-    }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">
-          Despesas
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => {
-            setSelectedExpense(null);
-            setFormOpen(true);
-          }}
-        >
-          Nova Despesa
-        </Button>
-      </Box>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-
-      {success && (
-        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
-          {success}
-        </Alert>
-      )}
-
-      {/* Filtros */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Filtros
-          </Typography>
-          <Grid container spacing={2} alignItems="center" wrap="nowrap">
-            <Grid item sx={{ flexGrow: 1 }}>
+    <Box className="expenses-root">
+      {/* Header Azul com Título e Ações */}
+      <Box className="expenses-header">
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Box display="flex" alignItems="center" gap={2}>
+            <Receipt sx={{ color: '#fff' }} />
+            <Typography variant="h5" fontWeight={700} sx={{ letterSpacing: 1, color: '#fff' }}>
+              Despesas
+            </Typography>
+          </Box>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<Add />}
+            onClick={() => { setSelectedExpense(null); setFormOpen(true); }}
+            className="header-action-btn"
+          >
+            Nova Despesa
+          </Button>
+        </Box>
+        {/* Botão Exportar reposicionado */}
+        <Box display="flex" justifyContent="flex-end" mb={2}>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<FileDownload />}
+            onClick={handleExport}
+            className="header-action-btn"
+          >
+            Exportar
+          </Button>
+        </Box>
+        {/* Bloco de Filtros */}
+        <Box className="expenses-filters-wrapper">
+          <Box className="expenses-filters-block">
+            <FormControl sx={{ minWidth: 160 }}>
               <TextField
                 label="Buscar"
                 value={filters.search}
@@ -285,97 +279,80 @@ const Expenses = () => {
                       <Search />
                     </InputAdornment>
                   ),
-                  sx: { fontSize: 18, height: 52 }
+                  sx: { height: 52 }
                 }}
-                InputLabelProps={{ sx: { fontSize: 18 } }}
                 size="medium"
-                fullWidth
-                sx={{ fontSize: 18, height: 52 }}
+                sx={{ minWidth: 180 }}
               />
-            </Grid>
-            <Grid item sx={{ flexGrow: 1 }}>
-              <FormControl fullWidth size="medium" sx={{ height: 52 }}>
-                <InputLabel sx={{ fontSize: 18 }}>Categoria</InputLabel>
-                <Select
-                  value={filters.category}
-                  onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                  label="Categoria"
-                  sx={{ fontSize: 18, height: 52 }}
-                >
-                  <MenuItem value="">Todas</MenuItem>
-                  {CATEGORIES.map((cat) => (
-                    <MenuItem key={cat.value} value={cat.value} sx={{ fontSize: 18 }}>
-                      {cat.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item sx={{ flexGrow: 1 }}>
-              <FormControl fullWidth size="medium" sx={{ height: 52 }}>
-                <InputLabel sx={{ fontSize: 18 }}>Recorrente</InputLabel>
-                <Select
-                  value={filters.is_recurring}
-                  onChange={(e) => setFilters({ ...filters, is_recurring: e.target.value })}
-                  label="Recorrente"
-                  sx={{ fontSize: 18, height: 52 }}
-                >
-                  <MenuItem value="">Todos</MenuItem>
-                  <MenuItem value="true" sx={{ fontSize: 18 }}>Sim</MenuItem>
-                  <MenuItem value="false" sx={{ fontSize: 18 }}>Não</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item sx={{ flexGrow: 1 }}>
-              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
-                <DatePicker
-                  label="Data Início"
-                  value={filters.date_start}
-                  onChange={(newValue) => {
-                    setFilters({ ...filters, date_start: newValue });
-                  }}
-                  renderInput={(params) => <TextField {...params} size="medium" fullWidth sx={{ fontSize: 18, height: 52 }} InputLabelProps={{ sx: { fontSize: 18 } }} />}
-                />
-              </LocalizationProvider>
-            </Grid>
-            <Grid item sx={{ flexGrow: 1 }}>
-              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
-                <DatePicker
-                  label="Data Fim"
-                  value={filters.date_end}
-                  onChange={(newValue) => {
-                    setFilters({ ...filters, date_end: newValue });
-                  }}
-                  renderInput={(params) => <TextField {...params} size="medium" fullWidth sx={{ fontSize: 18, height: 52 }} InputLabelProps={{ sx: { fontSize: 18 } }} />}
-                />
-              </LocalizationProvider>
-            </Grid>
-            <Grid item sx={{ minWidth: 160, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<FilterList />}
-                sx={{ height: 52, minWidth: 120, fontSize: 18 }}
-                onClick={() => {
-                  setPage(0);
-                  loadExpenses();
-                }}
+            </FormControl>
+            <FormControl sx={{ minWidth: 180 }}>
+              <InputLabel sx={{ color: '#fff' }}>Categoria</InputLabel>
+              <Select
+                value={filters.category}
+                label="Categoria"
+                onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+                sx={{ background: '#1f537c', color: '#fff', '.MuiOutlinedInput-notchedOutline': { borderColor: '#fff' }, '.MuiSelect-icon': { color: '#fff' } }}
               >
-                Filtrar
-              </Button>
-            </Grid>
-          </Grid>
-          <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                <MenuItem value="" sx={{ color: '#222', background: '#fff' }}>Todas</MenuItem>
+                {CATEGORIES.map((cat) => (
+                  <MenuItem key={cat.value} value={cat.value} sx={{ color: '#222', background: '#fff' }}>{cat.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
+              <DatePicker
+                label="Data Início"
+                value={filters.date_start}
+                onChange={(newValue) => setFilters({ ...filters, date_start: newValue })}
+                renderInput={(params) => <TextField {...params} sx={{ minWidth: 140, background: '#1f537c', '& .MuiInputBase-input': { color: '#fff' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: '#fff' }, '& .MuiInputLabel-root': { color: '#fff' }, '& .MuiSvgIcon-root': { color: '#fff' } }} />}
+              />
+            </LocalizationProvider>
+            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
+              <DatePicker
+                label="Data Fim"
+                value={filters.date_end}
+                onChange={(newValue) => setFilters({ ...filters, date_end: newValue })}
+                renderInput={(params) => <TextField {...params} sx={{ minWidth: 140, background: '#1f537c', '& .MuiInputBase-input': { color: '#fff' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: '#fff' }, '& .MuiInputLabel-root': { color: '#fff' }, '& .MuiSvgIcon-root': { color: '#fff' } }} />}
+              />
+            </LocalizationProvider>
             <Button
-              variant="outlined"
-              startIcon={<FileDownload />}
-              onClick={handleExport}
+              variant="contained"
+              color="primary"
+              startIcon={<FilterList />}
+              sx={{ height: 56, fontWeight: 700 }}
+              onClick={() => { setPage(0); loadExpenses(); }}
             >
-              Exportar
+              Filtrar
             </Button>
           </Box>
-        </CardContent>
-      </Card>
+        </Box>
+      </Box>
+
+      {/* Cards de Resumo */}
+      <Box className="expenses-cards-section">
+        <Card>
+          <CardContent>
+            <Box display="flex" alignItems="center" gap={1} mb={1}>
+              <Typography variant="h6">Total (Página)</Typography>
+            </Box>
+            <Typography variant="h4" color="error.main" fontWeight={700}>
+              {(() => {
+                const totalPage = expenses.reduce((sum, e) => sum + (parseFloat(e.value) || 0), 0);
+                return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalPage);
+              })()}
+            </Typography>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" mb={1}>Registros (Página)</Typography>
+            <Typography variant="h4" fontWeight={700}>{expenses.length}</Typography>
+          </CardContent>
+        </Card>
+      </Box>
+
+      {error && (<Alert severity="error" sx={{ mt: 1 }} onClose={() => setError(null)}>{error}</Alert>)}
+      {success && (<Alert severity="success" sx={{ mt: 1 }} onClose={() => setSuccess(null)}>{success}</Alert>)}
 
       {/* Tabela com seleção em massa */}
       <Card>

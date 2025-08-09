@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import '../styles/Dashboard.css';
 import { FormControl, InputLabel, Select, TextField } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -182,31 +183,9 @@ const Dashboard = () => {
   }
 
   return (
-    <Box sx={{ 
-      width: '100%', 
-      minHeight: '100vh',
-      pt: { xs: '88px', md: '88px' },
-      px: 3, 
-      py: 3,
-      overflow: 'auto',
-      boxSizing: 'border-box',
-      background: '#fff'
-    }}>
+  <Box className="dashboard-root">
       {/* Header unificado (título + filtros) */}
-      <Box sx={{
-        background: '#163b58',
-        borderBottomLeftRadius: 2,
-        borderBottomRightRadius: 2,
-        borderTopLeftRadius: 0,
-        borderTopRightRadius: 0,
-        px: { xs: 3, md: 5 },
-        pt: 3,
-        pb: 6, // maior para o azul ficar parcialmente atrás dos cards
-        mb: 0,
-        position: 'relative',
-        mx: -3,
-        mt: -3,
-      }}>
+  <Box className="dashboard-header">
         <Box sx={{ display: 'flex', alignItems: 'center', color: '#fff', mb: 2 }}>
           <Box sx={{ mr: 2 }}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 8h2v-2H7v2zm0-4h2v-2H7v2zm0-8v2h2V5H7zm4 12h8v-2h-8v2zm0-4h8v-2h-8v2zm0-8v2h8V5h-8z" fill="#fff"/></svg>
@@ -221,46 +200,8 @@ const Dashboard = () => {
           </Alert>
         )}
         {financialSummary && (
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Box sx={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 2,
-              alignItems: 'center',
-              background: 'rgb(19, 69, 108)',
-              color: '#fff',
-              borderRadius: 2,
-              boxShadow: 1,
-              px: 3,
-              py: 2,
-              zIndex: 2,
-              position: 'relative',
-              '& .MuiFormControl-root': {
-                background: '#1f537c',
-                color: '#fff',
-                borderRadius: 1,
-              },
-              '& .MuiTextField-root': {
-                background: '#1f537c',
-                color: '#fff',
-                borderRadius: 1,
-              },
-              '& .MuiInputBase-input': {
-                color: '#fff',
-              },
-              '& .MuiInputLabel-root': {
-                color: '#fff',
-              },
-              '& .MuiSelect-icon': {
-                color: '#fff',
-              },
-              '& .MuiSvgIcon-root': {
-                color: '#fff',
-              },
-              '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#fff',
-              },
-            }}>
+          <Box className="dashboard-filters-wrapper">
+            <Box className="dashboard-filters">
               <FormControl sx={{ minWidth: 160 }}>
                 <InputLabel sx={{ color: '#fff' }}>Período</InputLabel>
                 <Select
@@ -308,7 +249,7 @@ const Dashboard = () => {
                   renderInput={(params) => <TextField {...params} sx={{ minWidth: 140, background: '#1f537c', color: '#fff', '& .MuiInputBase-input': { color: '#fff' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: '#fff' }, '& .MuiInputLabel-root': { color: '#fff' }, '& .MuiSvgIcon-root': { color: '#fff' } } } />}
                 />
               </LocalizationProvider>
-              <Button variant="contained" color="primary" sx={{ height: 56, fontWeight: 700 }}>Editar Filtros</Button>
+              <Button variant="contained" color="primary" sx={{ height: 56, fontWeight: 700 }}>Aplicar Filtros</Button>
             </Box>
           </Box>
         )}
@@ -316,7 +257,7 @@ const Dashboard = () => {
 
       {/* Área branca com cards sobrepostos */}
       {financialSummary && (
-        <Box sx={{ mt: -4, mb: 4, position: 'relative', zIndex: 1 }}>
+  <Box className="dashboard-cards-section">
           <Box sx={{ display: 'flex', gap: 3, mb: 3, flexWrap: 'wrap' }}>
             <Card sx={{ flex: 1, minWidth: 220, boxShadow: 3, borderRadius: 2 }}>
               <CardContent>

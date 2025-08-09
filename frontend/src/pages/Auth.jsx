@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import '../styles/Auth.css';
 import {
   Box,
   Card,
@@ -138,23 +139,8 @@ const Auth = () => {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        width: '100vw',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #2196F3 0%, #4CAF50 100%)',
-        p: 2,
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-      }}
-    >
-      <Card sx={{ width: '100%', maxWidth: 500, boxShadow: 3 }}>
+    <Box className="auth-root">
+      <Card className="auth-card" sx={{ boxShadow: 3 }}>
         <CardContent sx={{ p: 4 }}>
           <Box textAlign="center" mb={3}>
             <Typography variant="h4" component="h1" gutterBottom color="primary">
