@@ -14,7 +14,7 @@ import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';
 import Expenses from './pages/Expenses';
 import Income from './pages/Income';
-import Reports from './pages/Reports';
+// import Reports from './pages/Reports';
 import Profile from './pages/Profile';
 import Auth from './pages/Auth';
 import ExpenseForm from './pages/ExpenseForm';
@@ -128,16 +128,7 @@ function App() {
               }
             />
             
-            <Route
-              path="/reports"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Reports />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
+
             
             <Route
               path="/profile"

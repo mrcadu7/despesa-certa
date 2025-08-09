@@ -33,10 +33,9 @@ const Navbar = () => {
   const [mobileMenuAnchor, setMobileMenuAnchor] = React.useState(null);
 
   const menuItems = [
-    { label: 'Dashboard', path: '/dashboard', icon: <Dashboard /> },
-    { label: 'Despesas', path: '/expenses', icon: <Receipt /> },
-    { label: 'Renda', path: '/income', icon: <AccountBalance /> },
-    { label: 'Relatórios', path: '/reports', icon: <Assessment /> },
+  { label: 'Dashboard', path: '/dashboard', icon: <Dashboard /> },
+  { label: 'Despesas', path: '/expenses', icon: <Receipt /> },
+  { label: 'Renda', path: '/income', icon: <AccountBalance /> },
   ];
 
   const handleUserMenuOpen = (event) => {
@@ -66,7 +65,7 @@ const Navbar = () => {
   };
 
   return (
-    <AppBar position="fixed" elevation={1} sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+  <AppBar position="fixed" elevation={1} sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, backgroundColor: '#172b39' }}>
       <Toolbar>
         {/* Logo */}
         <Box sx={{ display: 'flex', alignItems: 'center', mr: 4 }}>

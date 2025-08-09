@@ -1,4 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { FormControl, InputLabel, Select, TextField } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import ptBR from 'date-fns/locale/pt-BR';
 import {
   Box,
   Grid,
@@ -49,6 +54,12 @@ const Dashboard = () => {
   const [financialSummary, setFinancialSummary] = useState(null);
   const [recentExpenses, setRecentExpenses] = useState([]);
   const [error, setError] = useState(null);
+
+    // Filtros para relatório
+    const [period, setPeriod] = useState('monthly');
+    const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+    const [endDate, setEndDate] = useState(new Date());
+    const [reportType, setReportType] = useState('summary');
 
   // Estado para menu do FAB
   const [fabAnchorEl, setFabAnchorEl] = useState(null);
@@ -173,137 +184,247 @@ const Dashboard = () => {
   return (
     <Box sx={{ 
       width: '100%', 
-      height: '100vh',
-      pt: '64px', // Espaço para navbar fixa
+      minHeight: '100vh',
+      pt: { xs: '88px', md: '88px' },
       px: 3, 
       py: 3,
-      overflow: 'auto'
+      overflow: 'auto',
+      boxSizing: 'border-box',
+      background: '#fff'
     }}>
-      <Typography variant="h4" gutterBottom>
-        Dashboard
-      </Typography>
+      {/* Header unificado (título + filtros) */}
+      <Box sx={{
+        background: '#163b58',
+        borderBottomLeftRadius: 2,
+        borderBottomRightRadius: 2,
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
+        px: { xs: 3, md: 5 },
+        pt: 3,
+        pb: 6, // maior para o azul ficar parcialmente atrás dos cards
+        mb: 0,
+        position: 'relative',
+        mx: -3,
+        mt: -3,
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', color: '#fff', mb: 2 }}>
+          <Box sx={{ mr: 2 }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 8h2v-2H7v2zm0-4h2v-2H7v2zm0-8v2h2V5H7zm4 12h8v-2h-8v2zm0-4h8v-2h-8v2zm0-8v2h8V5h-8z" fill="#fff"/></svg>
+          </Box>
+          <Typography variant="h5" fontWeight={700} sx={{ letterSpacing: 1, color: '#fff' }}>
+            Dashboard
+          </Typography>
+        </Box>
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+        {financialSummary && (
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            <Box sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 2,
+              alignItems: 'center',
+              background: 'rgb(19, 69, 108)',
+              color: '#fff',
+              borderRadius: 2,
+              boxShadow: 1,
+              px: 3,
+              py: 2,
+              zIndex: 2,
+              position: 'relative',
+              '& .MuiFormControl-root': {
+                background: '#1f537c',
+                color: '#fff',
+                borderRadius: 1,
+              },
+              '& .MuiTextField-root': {
+                background: '#1f537c',
+                color: '#fff',
+                borderRadius: 1,
+              },
+              '& .MuiInputBase-input': {
+                color: '#fff',
+              },
+              '& .MuiInputLabel-root': {
+                color: '#fff',
+              },
+              '& .MuiSelect-icon': {
+                color: '#fff',
+              },
+              '& .MuiSvgIcon-root': {
+                color: '#fff',
+              },
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#fff',
+              },
+            }}>
+              <FormControl sx={{ minWidth: 160 }}>
+                <InputLabel sx={{ color: '#fff' }}>Período</InputLabel>
+                <Select
+                  value={period}
+                  label="Período"
+                  onChange={e => setPeriod(e.target.value)}
+                  sx={{ background: '#1f537c', color: '#fff', '.MuiOutlinedInput-notchedOutline': { borderColor: '#fff' }, '.MuiSelect-icon': { color: '#fff' } }}
+                  inputProps={{ style: { color: '#fff' } }}
+                >
+                  <MenuItem value="weekly" sx={{ color: '#222', background: '#fff' }}>Semanal</MenuItem>
+                  <MenuItem value="monthly" sx={{ color: '#222', background: '#fff' }}>Mensal</MenuItem>
+                  <MenuItem value="quarterly" sx={{ color: '#222', background: '#fff' }}>Trimestral</MenuItem>
+                  <MenuItem value="yearly" sx={{ color: '#222', background: '#fff' }}>Anual</MenuItem>
+                  <MenuItem value="custom" sx={{ color: '#222', background: '#fff' }}>Personalizado</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl sx={{ minWidth: 180 }}>
+                <InputLabel sx={{ color: '#fff' }}>Tipo de Relatório</InputLabel>
+                <Select
+                  value={reportType}
+                  label="Tipo de Relatório"
+                  onChange={e => setReportType(e.target.value)}
+                  sx={{ background: '#1f537c', color: '#fff', '.MuiOutlinedInput-notchedOutline': { borderColor: '#fff' }, '.MuiSelect-icon': { color: '#fff' } }}
+                  inputProps={{ style: { color: '#fff' } }}
+                >
+                  <MenuItem value="summary" sx={{ color: '#222', background: '#fff' }}>Resumo</MenuItem>
+                  <MenuItem value="detailed" sx={{ color: '#222', background: '#fff' }}>Detalhado</MenuItem>
+                  <MenuItem value="categories" sx={{ color: '#222', background: '#fff' }}>Por Categorias</MenuItem>
+                  <MenuItem value="trends" sx={{ color: '#222', background: '#fff' }}>Tendências</MenuItem>
+                </Select>
+              </FormControl>
+              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
+                <DatePicker
+                  label="Data Início"
+                  value={startDate}
+                  onChange={setStartDate}
+                  renderInput={(params) => <TextField {...params} sx={{ minWidth: 140, background: '#1f537c', color: '#fff', '& .MuiInputBase-input': { color: '#fff' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: '#fff' }, '& .MuiInputLabel-root': { color: '#fff' }, '& .MuiSvgIcon-root': { color: '#fff' } } } />}
+                />
+              </LocalizationProvider>
+              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ptBR}>
+                <DatePicker
+                  label="Data Fim"
+                  value={endDate}
+                  onChange={setEndDate}
+                  renderInput={(params) => <TextField {...params} sx={{ minWidth: 140, background: '#1f537c', color: '#fff', '& .MuiInputBase-input': { color: '#fff' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: '#fff' }, '& .MuiInputLabel-root': { color: '#fff' }, '& .MuiSvgIcon-root': { color: '#fff' } } } />}
+                />
+              </LocalizationProvider>
+              <Button variant="contained" color="primary" sx={{ height: 56, fontWeight: 700 }}>Editar Filtros</Button>
+            </Box>
+          </Box>
+        )}
+      </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
-
+      {/* Área branca com cards sobrepostos */}
       {financialSummary && (
-        <Grid container spacing={3}>
-          {/* Cards de Resumo */}
-          <Grid item xs={12} md={3}>
-            <Card>
+        <Box sx={{ mt: -4, mb: 4, position: 'relative', zIndex: 1 }}>
+          <Box sx={{ display: 'flex', gap: 3, mb: 3, flexWrap: 'wrap' }}>
+            <Card sx={{ flex: 1, minWidth: 220, boxShadow: 3, borderRadius: 2 }}>
               <CardContent>
-                <Box display="flex" alignItems="center" gap={1}>
+                <Box display="flex" alignItems="center" gap={1} mb={1}>
                   <AccountBalance color="primary" />
                   <Typography variant="h6">Renda</Typography>
                 </Box>
-                <Typography variant="h4" color="primary">
+                <Typography variant="h3" color="primary" fontWeight={700}>
                   {formatCurrency(financialSummary.income)}
                 </Typography>
               </CardContent>
             </Card>
-          </Grid>
-
-          <Grid item xs={12} md={3}>
-            <Card>
+            <Card sx={{ flex: 1, minWidth: 220, boxShadow: 3, borderRadius: 2 }}>
               <CardContent>
-                <Box display="flex" alignItems="center" gap={1}>
+                <Box display="flex" alignItems="center" gap={1} mb={1}>
                   <TrendingDown color="error" />
                   <Typography variant="h6">Despesas</Typography>
                 </Box>
-                <Typography variant="h4" color="error">
+                <Typography variant="h3" color="error" fontWeight={700}>
                   {formatCurrency(financialSummary.total_expenses)}
                 </Typography>
               </CardContent>
             </Card>
-          </Grid>
-
-          <Grid item xs={12} md={3}>
-            <Card>
+            <Card sx={{ flex: 1, minWidth: 220, boxShadow: 3, borderRadius: 2 }}>
               <CardContent>
-                <Box display="flex" alignItems="center" gap={1}>
+                <Box display="flex" alignItems="center" gap={1} mb={1}>
                   <TrendingUp color={financialSummary.balance >= 0 ? 'success' : 'error'} />
                   <Typography variant="h6">Saldo</Typography>
                 </Box>
-                <Typography 
-                  variant="h4" 
-                  color={financialSummary.balance >= 0 ? 'success.main' : 'error.main'}
-                >
+                <Typography variant="h3" color={financialSummary.balance >= 0 ? 'success.main' : 'error.main'} fontWeight={700}>
                   {formatCurrency(financialSummary.balance)}
                 </Typography>
               </CardContent>
             </Card>
-          </Grid>
-
-          <Grid item xs={12} md={3}>
-            <Card>
+            <Card sx={{ flex: 1, minWidth: 220, boxShadow: 3, borderRadius: 2 }}>
               <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Saúde Financeira
-                </Typography>
+                <Box display="flex" alignItems="center" gap={1} mb={1}>
+                  <CheckCircle color="success" />
+                  <Typography variant="h6">Saúde Financeira</Typography>
+                </Box>
                 <Chip
                   label={getHealthLabel(financialSummary.financial_health)}
                   color={getHealthColor(financialSummary.financial_health)}
                   icon={financialSummary.financial_health === 'excellent' ? <CheckCircle /> : <Warning />}
+                  sx={{ fontSize: 18, px: 2, py: 1 }}
                 />
               </CardContent>
             </Card>
-          </Grid>
+          </Box>
+        </Box>
+      )}
 
-          {/* Gráfico de Despesas por Categoria */}
-          <Grid item xs={12} md={8}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Despesas por Categoria
-                </Typography>
-                {pieChartData && Object.keys(financialSummary.expenses_by_category).length > 0 ? (
-                  <Box sx={{ height: 300 }}>
-                    <Pie data={pieChartData} options={pieChartOptions} />
-                  </Box>
-                ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    Nenhuma despesa encontrada para este mês.
-                  </Typography>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
+      {/* Conteúdo restante */}
 
-          {/* Alertas Financeiros */}
-          <Grid item xs={12} md={4}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Alertas Financeiros
-                </Typography>
-                {financialSummary.alerts && financialSummary.alerts.length > 0 ? (
-                  <List dense>
-                    {financialSummary.alerts.slice(0, 3).map((alert, index) => (
-                      <ListItem key={index}>
-                        <ListItemIcon>
-                          {alert.type === 'warning' ? (
-                            <Warning color="warning" />
-                          ) : (
-                            <Error color="error" />
-                          )}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={alert.title}
-                          secondary={alert.message}
-                        />
-                      </ListItem>
-                    ))}
-                  </List>
-                ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    Nenhum alerta para este mês.
+    {financialSummary && (
+  <>
+      {/* Gráfico de Despesas por Categoria e Alertas lado a lado */}
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={8}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Despesas por Categoria
                   </Typography>
-                )}
-              </CardContent>
-            </Card>
+                  {pieChartData && Object.keys(financialSummary.expenses_by_category).length > 0 ? (
+                    <Box sx={{ height: 300 }}>
+                      <Pie data={pieChartData} options={pieChartOptions} />
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      Nenhuma despesa encontrada para este mês.
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Alertas Financeiros
+                  </Typography>
+                  {financialSummary.alerts && financialSummary.alerts.length > 0 ? (
+                    <List dense>
+                      {financialSummary.alerts.slice(0, 3).map((alert, index) => (
+                        <ListItem key={index}>
+                          <ListItemIcon>
+                            {alert.type === 'warning' ? (
+                              <Warning color="warning" />
+                            ) : (
+                              <Error color="error" />
+                            )}
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={alert.title}
+                            secondary={alert.message}
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      Nenhum alerta para este mês.
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
           </Grid>
 
           {/* Despesas Recentes */}
@@ -354,7 +475,8 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           </Grid>
-        </Grid>
+          {/* ...existing code... (gráficos, alertas, despesas recentes) */}
+        </>
       )}
 
       {/* Botão Flutuante para Adicionar */}
