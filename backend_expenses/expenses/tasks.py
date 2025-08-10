@@ -15,6 +15,8 @@ from .models import Expense, MonthlyIncome
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
+DATE_FORMAT = "dd/mm/yyyy"
+
 
 @shared_task
 def export_expenses_csv(user_id):
@@ -35,7 +37,7 @@ def export_expenses_csv(user_id):
                 fp,
                 {
                     "in_memory": True,
-                    "default_date_format": "dd/mm/yyyy",
+                    "default_date_format": DATE_FORMAT,
                     "remove_timezone": True,
                 },
             )
@@ -43,7 +45,7 @@ def export_expenses_csv(user_id):
 
             header_format = workbook.add_format({"bold": True, "bg_color": "#D9E1F2", "border": 1})
             currency_format = workbook.add_format({"num_format": "R$ #,##0.00"})
-            date_format = workbook.add_format({"num_format": "dd/mm/yyyy"})
+            date_format = workbook.add_format({"num_format": DATE_FORMAT})
 
             meses = {
                 1: "JANEIRO",
@@ -89,7 +91,7 @@ def export_expenses_csv(user_id):
                     row,
                     5,
                     created_local,
-                    workbook.add_format({"num_format": "dd/mm/yyyy hh:mm:ss"}),
+                    workbook.add_format({"num_format": DATE_FORMAT + " hh:mm:ss"}),
                 )
 
                 categoria_totais[expense.category] += expense.value
@@ -154,7 +156,7 @@ def export_monthly_income_csv(user_id):
                 fp,
                 {
                     "in_memory": True,
-                    "default_date_format": "dd/mm/yyyy",
+                    "default_date_format": DATE_FORMAT,
                     "remove_timezone": True,
                 },
             )
@@ -162,7 +164,7 @@ def export_monthly_income_csv(user_id):
 
             header_format = workbook.add_format({"bold": True, "bg_color": "#D9E1F2", "border": 1})
             currency_format = workbook.add_format({"num_format": "R$ #,##0.00"})
-            date_format = workbook.add_format({"num_format": "dd/mm/yyyy"})
+            date_format = workbook.add_format({"num_format": DATE_FORMAT})
 
             meses = {
                 1: "JANEIRO",
@@ -218,7 +220,7 @@ def export_monthly_income_csv(user_id):
                     row,
                     6,
                     created_local,
-                    workbook.add_format({"num_format": "dd/mm/yyyy hh:mm:ss"}),
+                    workbook.add_format({"num_format": DATE_FORMAT + " hh:mm:ss"}),
                 )
                 row += 1
 

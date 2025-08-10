@@ -25,6 +25,8 @@ from .serializers import (
 from .services import FinancialAnalysisService
 from .tasks import export_expenses_csv, export_monthly_income_csv
 
+IDS_LIST_ERROR_MSG = "ids deve ser uma lista de IDs"
+
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
     """Permite que apenas o dono edite/deletar, staff pode tudo."""
@@ -89,9 +91,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         """
         ids = request.data.get("ids", [])
         if not ids or not isinstance(ids, list):
-            return Response(
-                {"error": "ids deve ser uma lista de IDs"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": IDS_LIST_ERROR_MSG}, status=status.HTTP_400_BAD_REQUEST)
 
         update_fields = request.data.get("data", {})
         if not update_fields:
@@ -130,9 +130,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         """
         ids = request.data.get("ids", [])
         if not ids or not isinstance(ids, list):
-            return Response(
-                {"error": "ids deve ser uma lista de IDs"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": IDS_LIST_ERROR_MSG}, status=status.HTTP_400_BAD_REQUEST)
 
         queryset = self.get_queryset().filter(id__in=ids)
         ids_set = set(ids)
@@ -287,9 +285,7 @@ class MonthlyIncomeViewSet(viewsets.ModelViewSet):
         """
         ids = request.data.get("ids", [])
         if not ids or not isinstance(ids, list):
-            return Response(
-                {"error": "ids deve ser uma lista de IDs"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": IDS_LIST_ERROR_MSG}, status=status.HTTP_400_BAD_REQUEST)
 
         update_fields = {k: v for k, v in request.data.items() if k != "ids"}
         if not update_fields:
@@ -321,9 +317,7 @@ class MonthlyIncomeViewSet(viewsets.ModelViewSet):
         """
         ids = request.data.get("ids", [])
         if not ids or not isinstance(ids, list):
-            return Response(
-                {"error": "ids deve ser uma lista de IDs"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": IDS_LIST_ERROR_MSG}, status=status.HTTP_400_BAD_REQUEST)
 
         queryset = self.get_queryset().filter(id__in=ids)
         deleted = queryset.count()
