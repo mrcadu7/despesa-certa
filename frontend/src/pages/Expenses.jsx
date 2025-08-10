@@ -333,7 +333,7 @@ const Expenses = () => {
         <Card>
           <CardContent>
             <Box display="flex" alignItems="center" gap={1} mb={1}>
-              <Typography variant="h6">Total (Página)</Typography>
+              <Typography variant="h6">Total </Typography>
             </Box>
             <Typography variant="h4" color="error.main" fontWeight={700}>
               {(() => {
@@ -345,7 +345,7 @@ const Expenses = () => {
         </Card>
         <Card>
           <CardContent>
-            <Typography variant="h6" mb={1}>Registros (Página)</Typography>
+            <Typography variant="h6" mb={1}>Registros </Typography>
             <Typography variant="h4" fontWeight={700}>{expenses.length}</Typography>
           </CardContent>
         </Card>

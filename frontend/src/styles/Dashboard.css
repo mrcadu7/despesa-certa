@@ -41,6 +41,14 @@
 
 .dashboard-cards-section { margin-top: -32px; margin-bottom: 32px; position: relative; z-index: 1; }
 
+.dashboard-main-card {
+  margin-top: 0;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+  border-radius: 12px;
+  background: #fff;
+}
+
 @media (max-width: 600px) {
   .dashboard-header { padding: 24px 24px 48px 24px; }
   .dashboard-filters { padding: 16px; }

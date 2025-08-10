@@ -353,7 +353,7 @@ const Income = () => {
       <Box className="income-cards-section">
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom color="success.main">Total (Página)</Typography>
+            <Typography variant="h6" gutterBottom color="success.main">Total </Typography>
             <Typography variant="h4" color="success.main" fontWeight={700}>
               {(() => {
                 const totalPage = monthlyIncomes.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
@@ -364,13 +364,13 @@ const Income = () => {
         </Card>
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>Registros (Página)</Typography>
+            <Typography variant="h6" gutterBottom>Registros </Typography>
             <Typography variant="h4" fontWeight={700}>{monthlyIncomes.length}</Typography>
           </CardContent>
         </Card>
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>Recorrentes (Página)</Typography>
+            <Typography variant="h6" gutterBottom>Recorrentes </Typography>
             <Typography variant="h4" fontWeight={700}>{monthlyIncomes.filter(i => i.is_recurring).length}</Typography>
           </CardContent>
         </Card>

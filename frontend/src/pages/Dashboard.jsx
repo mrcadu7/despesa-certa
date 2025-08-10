@@ -313,111 +313,112 @@ const Dashboard = () => {
       {/* Conteúdo restante */}
 
     {financialSummary && (
-  <>
-      {/* Gráfico de Despesas por Categoria e Alertas lado a lado */}
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={8}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Despesas por Categoria
-                  </Typography>
-                  {pieChartData && Object.keys(financialSummary.expenses_by_category).length > 0 ? (
-                    <Box sx={{ height: 300 }}>
-                      <Pie data={pieChartData} options={pieChartOptions} />
-                    </Box>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      Nenhuma despesa encontrada para este mês.
+        <Card className="dashboard-main-card" sx={{ mt: 2, boxShadow: 3, borderRadius: 2 }}>
+          <CardContent>
+            {/* Gráfico de Despesas por Categoria e Alertas lado a lado */}
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={8}>
+                <Card sx={{ boxShadow: 1, borderRadius: 2 }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      Despesas por Categoria
                     </Typography>
-                  )}
-                </CardContent>
-              </Card>
+                    {pieChartData && Object.keys(financialSummary.expenses_by_category).length > 0 ? (
+                      <Box sx={{ height: 300 }}>
+                        <Pie data={pieChartData} options={pieChartOptions} />
+                      </Box>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        Nenhuma despesa encontrada para este mês.
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <Card sx={{ boxShadow: 1, borderRadius: 2 }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      Alertas Financeiros
+                    </Typography>
+                    {financialSummary.alerts && financialSummary.alerts.length > 0 ? (
+                      <List dense>
+                        {financialSummary.alerts.slice(0, 3).map((alert, index) => (
+                          <ListItem key={index}>
+                            <ListItemIcon>
+                              {alert.type === 'warning' ? (
+                                <Warning color="warning" />
+                              ) : (
+                                <Error color="error" />
+                              )}
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={alert.title}
+                              secondary={alert.message}
+                            />
+                          </ListItem>
+                        ))}
+                      </List>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        Nenhum alerta para este mês.
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
             </Grid>
-            <Grid item xs={12} md={4}>
-              <Card>
+
+            {/* Despesas Recentes */}
+            <Grid item xs={12} sx={{ mt: 3 }}>
+              <Card sx={{ boxShadow: 1, borderRadius: 2 }}>
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Alertas Financeiros
-                  </Typography>
-                  {financialSummary.alerts && financialSummary.alerts.length > 0 ? (
-                    <List dense>
-                      {financialSummary.alerts.slice(0, 3).map((alert, index) => (
-                        <ListItem key={index}>
-                          <ListItemIcon>
-                            {alert.type === 'warning' ? (
-                              <Warning color="warning" />
-                            ) : (
-                              <Error color="error" />
-                            )}
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={alert.title}
-                            secondary={alert.message}
-                          />
-                        </ListItem>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                    <Typography variant="h6">
+                      Despesas Recentes
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      onClick={() => navigate('/expenses')}
+                    >
+                      Ver Todas
+                    </Button>
+                  </Box>
+                  {recentExpenses.length > 0 ? (
+                    <List>
+                      {recentExpenses.map((expense) => (
+                      <ListItem key={expense.id} divider>
+                        <ListItemText
+                          primary={expense.description}
+                          secondary={`${expense.category} • ${(() => {
+                            if (typeof expense.date === 'string' && expense.date.includes('-')) {
+                              const [year, month, day] = expense.date.split('-');
+                              return `${day}/${month}/${year}`;
+                            } else if (expense.date instanceof Date && !isNaN(expense.date)) {
+                              const year = expense.date.getFullYear();
+                              const month = String(expense.date.getMonth() + 1).padStart(2, '0');
+                              const day = String(expense.date.getDate()).padStart(2, '0');
+                              return `${day}/${month}/${year}`;
+                            }
+                            return '';
+                          })()}`}
+                        />
+                        <Typography variant="h6" color="error">
+                          {formatCurrency(expense.value)}
+                        </Typography>
+                      </ListItem>
                       ))}
                     </List>
                   ) : (
                     <Typography variant="body2" color="text.secondary">
-                      Nenhum alerta para este mês.
+                      Nenhuma despesa encontrada.
                     </Typography>
                   )}
                 </CardContent>
               </Card>
             </Grid>
-          </Grid>
-
-          {/* Despesas Recentes */}
-          <Grid item xs={12}>
-            <Card>
-              <CardContent>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                  <Typography variant="h6">
-                    Despesas Recentes
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    onClick={() => navigate('/expenses')}
-                  >
-                    Ver Todas
-                  </Button>
-                </Box>
-                {recentExpenses.length > 0 ? (
-                  <List>
-                    {recentExpenses.map((expense) => (
-                    <ListItem key={expense.id} divider>
-                      <ListItemText
-                        primary={expense.description}
-                        secondary={`${expense.category} • ${(() => {
-                          if (typeof expense.date === 'string' && expense.date.includes('-')) {
-                            const [year, month, day] = expense.date.split('-');
-                            return `${day}/${month}/${year}`;
-                          } else if (expense.date instanceof Date && !isNaN(expense.date)) {
-                            const year = expense.date.getFullYear();
-                            const month = String(expense.date.getMonth() + 1).padStart(2, '0');
-                            const day = String(expense.date.getDate()).padStart(2, '0');
-                            return `${day}/${month}/${year}`;
-                          }
-                          return '';
-                        })()}`}
-                      />
-                      <Typography variant="h6" color="error">
-                        {formatCurrency(expense.value)}
-                      </Typography>
-                    </ListItem>
-                    ))}
-                  </List>
-                ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    Nenhuma despesa encontrada.
-                  </Typography>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
-          {/* ...existing code... (gráficos, alertas, despesas recentes) */}
-        </>
+          </CardContent>
+        </Card>
       )}
 
       {/* Botão Flutuante para Adicionar */}
