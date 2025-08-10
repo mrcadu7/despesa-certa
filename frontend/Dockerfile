@@ -6,11 +6,14 @@ FROM node:18-alpine
 # Definir diretório de trabalho
 WORKDIR /app
 
+# Aumenta limite de heap do Node (instância t2.micro tem pouca RAM)
+ENV NODE_OPTIONS=--max_old_space_size=768
+
 # Copiar arquivos de dependências
 COPY package*.json ./
 
 # Instalar dependências
-RUN npm install
+RUN npm install --no-audit --no-fund
 
 # Copiar código fonte
 COPY . .
