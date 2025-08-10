@@ -16,19 +16,18 @@ jobs:
       
     - name: Setup SSH
       run: |
-        mkdir -p $HOME/.ssh
-        echo "${{ secrets.EC2_SSH_KEY }}" > $HOME/.ssh/id_rsa
-        chmod 600 $HOME/.ssh/id_rsa
-        chmod 700 $HOME/.ssh
-        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> $HOME/.ssh/known_hosts
+        eval $(ssh-agent -s)
+        echo "${{ secrets.EC2_SSH_KEY }}" | tr -d '\r' | ssh-add -
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
         
     - name: Test SSH Connection
       run: |
-        ssh -o StrictHostKeyChecking=no -i $HOME/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo 'SSH connection successful'"
+        ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "echo 'SSH connection successful'"
         
     - name: Deploy to EC2
       run: |
-        ssh -o StrictHostKeyChecking=no -i $HOME/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+        ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
           # Navegar para o diretório do projeto
           cd /home/ubuntu/despesa-certa
           
@@ -54,7 +53,7 @@ jobs:
         sleep 30
         
         # Testar se a aplicação está rodando
-        ssh -o StrictHostKeyChecking=no -i $HOME/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+        ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
           echo "🧪 Testando conectividade..."
           
           # Obter IP público
