@@ -1,30 +1,28 @@
 version: '3.9'
 
-# Arquivo de produção: levanta backend (gunicorn), frontend (nginx estático)
-# e um reverse proxy Nginx que termina HTTPS e aplica redirecionamento 80->443.
-# Substitua os caminhos de certificados pelos reais (Let’s Encrypt ou outro AC).
+# Docker Compose simplificado para AWS EC2
+# Remove HTTPS e usa HTTP direto nas portas 80 e 8000
 
 services:
   backend:
     build: ./backend_expenses
     command: gunicorn backend_expenses.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 60
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.aws
     environment:
-      - DEBUG=0
       - RUNNING_IN_DOCKER=1
-      - SECRET_KEY=${SECRET_KEY}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - DB_HOST=db
-      - DB_PORT=5432
     depends_on:
       - db
       - redis
 
   frontend:
     build: ./frontend
+    ports:
+      - "3000:80"
     environment:
-      - VITE_API_URL=https://${DOMAIN}/api
+      - VITE_API_URL=http://${AWS_PUBLIC_IP}:8000/api
     depends_on:
       - backend
 
@@ -36,21 +34,13 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data/
+    ports:
+      - "5432:5432"
 
   redis:
     image: redis:7
-
-  proxy:
-    image: nginx:stable-alpine
     ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./infra/nginx/proxy.conf:/etc/nginx/nginx.conf:ro
-      - ./infra/certs:/etc/nginx/certs:ro
-    depends_on:
-      - frontend
-      - backend
+      - "6379:6379"
 
 volumes:
   pgdata:
