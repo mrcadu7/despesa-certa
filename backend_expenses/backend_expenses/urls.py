@@ -3,14 +3,12 @@ from drf_yasg.views import get_schema_view
 from rest_framework import permissions, routers, throttling
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import never_cache
-
-
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
 
 from expenses.views import ExpenseViewSet
 
@@ -67,4 +65,8 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+else:
+    # Em produção, também servir arquivos estáticos (WhiteNoise já cuida dos STATIC)
+    # Mas precisamos configurar os MEDIA files
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

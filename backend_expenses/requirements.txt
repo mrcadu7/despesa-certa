@@ -8,6 +8,7 @@ drf-yasg>=1.21.7
 xlsxwriter>=3.2,<4.0
 pytz>=2024.1,<2025.0
 pycryptodome>=3.19,<4.0
+whitenoise>=6.6,<7.0
 
 pytest-xdist>=3.6,<4.0
 pydantic>=2.0,<3.0

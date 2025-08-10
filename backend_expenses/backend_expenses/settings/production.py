@@ -100,3 +100,23 @@ LOGGING = {
         },
     },
 }
+
+# Configurações de arquivos estáticos para produção
+STATIC_URL = "/static/"
+STATIC_ROOT = "/app/staticfiles"
+
+# Configurações de arquivos de media para produção
+MEDIA_URL = "/media/"
+MEDIA_ROOT = "/app/media"
+
+# Configuração adicional para servir arquivos estáticos em produção
+# (normalmente seria feito pelo nginx, mas para simplicidade usamos Django)
+STATICFILES_DIRS = []
+
+# WhiteNoise para servir arquivos estáticos em produção de forma eficiente
+MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
+
+# Configurações do WhiteNoise
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_AUTOREFRESH = True
