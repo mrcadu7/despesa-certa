@@ -137,10 +137,11 @@ scheduleTokenRefresh();
 // Serviços de autenticação
 export const authService = {
   login: async (email, password) => {
-    // Temporariamente desabilitando criptografia para testar
+    const encryptedPassword = encryptPassword(password);
     const response = await api.post('/token/', { 
       username: email, 
-      password: password  // Senha em texto plano temporariamente
+      password: encryptedPassword,
+      encrypted: true
     });
     return response.data;
   },
