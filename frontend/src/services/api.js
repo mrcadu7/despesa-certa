@@ -1,21 +1,9 @@
 import axios from 'axios';
-import CryptoJS from 'crypto-js';
 
 // Configuração base do axios
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
-// Chave para criptografia (em produção, deve vir de variável de ambiente)
-const ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY || 'despesa-certa-secret-key-2025';
-
-// Funções de criptografia usando AES (compatível com browser)
-const encryptPassword = (password) => {
-  try {
-    return CryptoJS.AES.encrypt(password, ENCRYPTION_KEY).toString();
-  } catch (error) {
-    console.error('Erro ao criptografar senha:', error);
-    return password; // Fallback para senha em texto plano
-  }
-};
+const encryptPassword = (password) => password;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -137,23 +125,19 @@ scheduleTokenRefresh();
 // Serviços de autenticação
 export const authService = {
   login: async (email, password) => {
-    const encryptedPassword = encryptPassword(password);
     const response = await api.post('/token/', { 
       username: email, 
-      password: encryptedPassword,
-      encrypted: true
+      password
     });
     return response.data;
   },
   
   register: async (username, password, email = '') => {
     // Criptografar a senha antes de enviar
-    const encryptedPassword = encryptPassword(password);
     const response = await api.post('/register/', { 
       username, 
-      password: encryptedPassword, 
-      email,
-      encrypted: true // Flag para indicar que a senha está criptografada
+      password, 
+      email
     });
     return response.data;
   },

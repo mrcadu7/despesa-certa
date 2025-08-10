@@ -185,8 +185,16 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '1000/day',
-        'user': '10000/day',
+    'anon': '200/day',
+    'user': '2000/day',
+    'login': '5/min',
+    'register': '10/hour',
+    'expenses': '120/min',
+    'income': '60/min',
+    'alerts': '60/min',
+    'alerts_generate': '5/min',
+    'summary': '30/min',
+    'export': '3/min',
     },
 }
 
@@ -205,3 +213,29 @@ SIMPLE_JWT = {
 
 # Configurações de criptografia
 ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', 'despesa-certa-secret-key-2025')
+
+# Hashers de senha (Argon2 primeiro para mais segurança). Django fará rehash automático ao login.
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.Argon2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+    'django.contrib.auth.hashers.ScryptPasswordHasher',
+]
+
+# Hardening de segurança somente em produção
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 ano
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_REFERRER_POLICY = 'same-origin'
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    # X_FRAME_OPTIONS já é tratado pelo middleware padrão, mas reforçamos intenção
+    X_FRAME_OPTIONS = 'DENY'
+    # Indica a Django que deve confiar no cabeçalho enviado pelo proxy para saber se a requisição foi HTTPS
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Nota: A "criptografia" de senha no frontend é apenas ofuscação; HTTPS já protege em trânsito.
+# O middleware continuará suportando o campo "encrypted" para compatibilidade, mas recomenda-se remover no frontend.

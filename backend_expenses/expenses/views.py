@@ -50,6 +50,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = ExpenseSerializer
+    throttle_scope = "expenses"
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
     filter_backends = [
         DjangoFilterBackend,
@@ -148,6 +149,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
 
 class ExportExpensesCSVView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "export"
 
     def get(self, request):
         """
@@ -214,6 +216,7 @@ class MonthlyIncomeViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = MonthlyIncomeSerializer
+    throttle_scope = "income"
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = MonthlyIncomeFilter
@@ -327,6 +330,7 @@ class MonthlyIncomeViewSet(viewsets.ModelViewSet):
 
 class ExportMonthlyIncomeCSVView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "export"
 
     def get(self, request):
         """
@@ -391,6 +395,7 @@ class FinancialAlertViewSet(viewsets.ReadOnlyModelViewSet):
     """
 
     serializer_class = FinancialAlertSerializer
+    throttle_scope = "alerts"
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
@@ -420,6 +425,7 @@ class FinancialSummaryView(APIView):
     """
 
     permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "summary"
 
     def get(self, request):
         """Retorna resumo financeiro do mês atual ou especificado."""
@@ -454,6 +460,7 @@ class GenerateFinancialAlertsView(APIView):
     """
 
     permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "alerts_generate"
 
     def post(self, request):
         """Gera alertas financeiros para o mês especificado."""
@@ -488,6 +495,7 @@ class RegisterView(APIView):
     """
 
     permission_classes = [permissions.AllowAny]
+    throttle_scope = "register"
 
     def post(self, request):
         username = request.data.get("username")
@@ -503,7 +511,14 @@ class RegisterView(APIView):
         if User.objects.filter(username=username).exists():
             return Response({"error": "Username já existe"}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = User.objects.create_user(username=username, password=password, email=email)
+        # Normaliza email/username para evitar duplicados por casing
+        norm_username = username.strip().lower()
+        norm_email = email.strip().lower()
+
+        if norm_email and User.objects.filter(email__iexact=norm_email).exists():
+            return Response({"error": "Email já existe"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.create_user(username=norm_username, password=password, email=norm_email)
 
         return Response(
             {
