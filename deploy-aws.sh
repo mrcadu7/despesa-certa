@@ -1,22 +1,30 @@
 #!/bin/bash
 
-# Script para deploy na AWS EC2
-# Execute este script na sua instância EC2
+# Script de Deploy Básico - AWS EC2
+# Para deploy mais avançado, use: ./deploy-aws-optimized.sh
 
 echo "🚀 Iniciando deploy na AWS EC2..."
+echo "💡 Para deploy otimizado com mais recursos, use: ./deploy-aws-optimized.sh"
 
 # 1. Parar containers existentes se houver
 echo "📦 Parando containers existentes..."
-docker-compose -f docker-compose.aws.yml down 2>/dev/null || true
+docker compose -f docker-compose.aws.yml down 2>/dev/null || true
 
 # 2. Obter IP público da instância
 echo "🌐 Obtendo IP público da instância..."
-PUBLIC_IP=$(curl -s http://{PUBLIC_IP}/latest/meta-data/public-ipv4)
+PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 echo "IP público: $PUBLIC_IP"
 
-# 3. Criar arquivo .env.aws com o IP correto
+# 3. Atualizar arquivo .env.aws existente ou criar novo
 echo "⚙️ Configurando variáveis de ambiente..."
-cat > .env.aws << EOF
+if [ -f ".env.aws" ]; then
+    # Atualizar IP no arquivo existente
+    sed -i "s/AWS_PUBLIC_IP=.*/AWS_PUBLIC_IP=$PUBLIC_IP/" .env.aws
+    sed -i "s/DOMAIN=.*/DOMAIN=$PUBLIC_IP/" .env.aws
+    echo "✅ Arquivo .env.aws atualizado"
+else
+    # Criar novo arquivo .env.aws
+    cat > .env.aws << EOF
 DEBUG=False
 SECRET_KEY=django-insecure-MUDE-ESTA-CHAVE-EM-PRODUCAO-$(date +%s)
 DJANGO_ALLOWED_HOSTS=*

@@ -1,0 +1,91 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+        
+    - name: Add EC2 to known hosts
+      run: |
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+        
+    - name: Deploy to EC2
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          # Navegar para o diretório do projeto
+          cd /home/ubuntu/despesa-certa
+          
+          # Verificar IP antes do deploy
+          echo "🔍 Verificando mudanças de IP..."
+          chmod +x check-ip.sh
+          ./check-ip.sh || echo "IP pode ter mudado - deploy irá resolver"
+          
+          # Pull das mudanças
+          git fetch origin
+          git reset --hard origin/develop
+          
+          # Dar permissão de execução para o script
+          chmod +x deploy-aws-optimized.sh
+          
+          # Executar o deploy (detecta IP automaticamente)
+          ./deploy-aws-optimized.sh
+        EOF
+        
+    - name: Verify deployment
+      run: |
+        # Aguardar alguns segundos para os containers subirem
+        sleep 30
+        
+        # Testar se a aplicação está rodando
+        ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          echo "🧪 Testando conectividade..."
+          
+          # Obter IP público
+          PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+          
+          # Teste Backend
+          if curl -s -f http://localhost:8000/api/ > /dev/null; then
+            echo "✅ Backend está respondendo"
+          else
+            echo "❌ Backend não está respondendo"
+            exit 1
+          fi
+          
+          # Teste Frontend
+          if curl -s -f http://localhost:3000 > /dev/null; then
+            echo "✅ Frontend está respondendo"
+          else
+            echo "❌ Frontend não está respondendo"
+            exit 1
+          fi
+          
+          echo "🎉 Deploy verificado com sucesso!"
+          echo "Frontend: http://$PUBLIC_IP:3000"
+          echo "Backend: http://$PUBLIC_IP:8000/api/"
+        EOF
+        
+    - name: Notify on success
+      if: success()
+      run: |
+        echo "✅ Deploy realizado com sucesso!"
+        echo "A aplicação está rodando em produção."
+        
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "❌ Deploy falhou!"
+        echo "Verifique os logs para mais detalhes."

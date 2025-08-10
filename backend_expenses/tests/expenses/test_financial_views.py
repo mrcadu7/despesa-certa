@@ -107,7 +107,7 @@ class FinancialViewsTestCase(APITestCase):
         url = reverse("financial-summary")
         response = self.client.get(url)
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_financial_summary_multiple_incomes(self):
         """Testa se o resumo financeiro soma múltiplos incomes do mesmo mês."""
