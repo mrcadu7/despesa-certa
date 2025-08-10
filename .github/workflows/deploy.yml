@@ -2,9 +2,9 @@ name: Deploy to AWS EC2
 
 on:
   push:
-    branches: [ develop ]
+    branches: [ main ]
   pull_request:
-    branches: [ develop ]
+    branches: [ main ]
 
 jobs:
   deploy:
@@ -36,7 +36,7 @@ jobs:
           
           # Pull das mudanças
           git fetch origin
-          git reset --hard origin/develop
+          git reset --hard origin/main
           
           # Dar permissão de execução para o script
           chmod +x deploy-aws-optimized.sh
