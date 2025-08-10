@@ -33,6 +33,7 @@ services:
       - .env.docker
     environment:
       - RUNNING_IN_DOCKER=1
+      - DJANGO_SETTINGS_MODULE=backend_expenses.settings.local
     depends_on:
       db:
         condition: service_healthy
