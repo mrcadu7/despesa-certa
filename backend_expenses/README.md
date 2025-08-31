@@ -13,21 +13,22 @@
    .venv\Scripts\activate  # Windows
    source .venv/bin/activate # Linux/Mac
    ```
-3. **Instale as dependências:**
+3. **Configure o arquivo '.env':**
+4. **Instale as dependências:**
    ```sh
    pip install -r requirements.txt
    ```
-4. **Configure o banco de dados:**
+5. **Configure o banco de dados:**
    - Edite o arquivo `backend_expenses/settings.py` com suas credenciais.
    - Execute as migrações:
      ```sh
      python manage.py migrate
      ```
-5. **Crie um superusuário (opcional):**
+6. **Crie um superusuário (opcional):**
    ```sh
    python manage.py createsuperuser
    ```
-6. **Execute o servidor:**
+7. **Execute o servidor:**
    ```sh
    python manage.py runserver
    ```
